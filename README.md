@@ -1,4 +1,4 @@
-<h1 align="center">Block 3</h1>
+<h1 align="center">Block3</h1>
 
 ## License
 
