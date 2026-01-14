@@ -3,6 +3,7 @@ package routers
 import (
 	"net/http"
 
+	"github.com/groundsgg/b3"
 	"github.com/groundsgg/b3/internal/web/pages"
 	"github.com/groundsgg/b3/pkg/log"
 )
@@ -52,6 +53,7 @@ func b(w http.ResponseWriter, r *http.Request) {
 func CoreRouter() *http.ServeMux {
 	mux := http.NewServeMux()
 
+	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(b3.Assets())))
 	mux.HandleFunc("/", coreHome)
 	mux.HandleFunc("/a", a)
 	mux.HandleFunc("/b", b)

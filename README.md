@@ -1,5 +1,8 @@
 <h1 align="center">Block3</h1>
 
+B3 is your all-in-one home for Minecraft schematics, heightmaps, and everything your builds need.
+
+
 ## License
 
 This project is licensed under the GNU Affero General Public License v3 (AGPLv3).

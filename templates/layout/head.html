@@ -1,0 +1,24 @@
+{{ define "head" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" >
+    <meta http-equiv="content-language" content="en">
+    <meta name="robots" content="NOINDEX,NOFOLLOW">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta property="og:site_name" content="B3">
+    <meta property="og:title" content="{{ .Title }}">
+    <title>{{ .Title }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link crossorigin="anonymous" media="all" rel="stylesheet" href="/assets/style.css">
+    <style type="text/tailwindcss">
+      @theme {
+        --color-primary: #007595;
+      }
+    </style>
+</head>
+<body>
+{{ template "partials.header" . }}
+<main>
+{{ end }}
