@@ -1,24 +1,19 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 package web
 
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/groundsgg/b3/internal/web/middleware"
-	"github.com/groundsgg/b3/internal/web/pages"
 	"github.com/groundsgg/b3/internal/web/request"
 	"github.com/groundsgg/b3/internal/web/routers"
+	"github.com/groundsgg/b3/internal/web/routers/auth"
 	"github.com/groundsgg/b3/internal/web/routers/core"
 )
 
-type Server struct {
-	httpServer *http.Server
-	logger     *slog.Logger
-	pages      pages.Pages
-}
-
+// Start runs the HTTP server and blocks until it stops.
 func (s *Server) Start() error {
 	s.logger.Info("starting web server",
 		"addr", s.httpServer.Addr,
@@ -30,17 +25,19 @@ func (s *Server) Start() error {
 	return err
 }
 
+// Stop gracefully shuts down the HTTP server with the provided context.
 func (s *Server) Stop(ctx context.Context) error {
-	s.logger.Info("stopping webserver")
+	s.logger.Info("stopping web server")
 	err := s.httpServer.Shutdown(ctx)
 	if errors.Is(err, context.DeadlineExceeded) {
-		s.logger.Info("kill web server")
+		s.logger.Info("force closing web server")
 		return s.httpServer.Close()
 	}
 
 	return err
 }
 
+// NewServer builds a configured web server with routes and middleware.
 func NewServer(cfg ServerConfig) *Server {
 	server := &Server{
 		httpServer: &http.Server{
@@ -56,13 +53,14 @@ func NewServer(cfg ServerConfig) *Server {
 		middleware.Session(cfg.SessionKey),
 	)
 
-	mainRounter := routers.NewRouter()
-	mainRounter.Handle("/assets/", core.AssetsHandler())
-	mainRounter.Handle("/", core.Home)
-	mainRounter.Handle("/a", core.A)
-	mainRounter.Handle("/b", core.B)
+	mainRouter := routers.NewRouter()
+	mainRouter.Handle("GET /assets/", core.AssetsHandler())
+	mainRouter.Handle("/auth/", auth.Handler())
+	mainRouter.Handle("/", core.Home)
+	mainRouter.Handle("/a", core.A)
+	mainRouter.Handle("/b", core.B)
 
-	server.httpServer.Handler = request.Parse(mw(mainRounter.Serve), server.pages)
+	server.httpServer.Handler = request.Parse(mw(mainRouter.Serve), server.pages, cfg.AuthHandler)
 
 	return server
 }

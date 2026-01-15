@@ -1,9 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 package request
 
 import (
 	"log/slog"
 	"net/http"
 
+	"github.com/groundsgg/b3/internal/auth"
 	"github.com/groundsgg/b3/internal/web/pages"
 )
 
@@ -13,7 +15,8 @@ type Request struct {
 	Logger          *slog.Logger
 	ID              string
 	pages           pages.Pages
-	Session         *SessionInfo
+	Session         SessionInfo
+	AuthHandler     auth.AuthHandler
 }
 
 type ErrorData struct {
@@ -23,8 +26,16 @@ type ErrorData struct {
 
 func (r *Request) PrintOnly(pageID, title string, data any) error {
 	return r.pages.Render(r.OriginalWriter, pageID, pages.PageData{
-		Title: title,
-		Data:  data,
+		Title:   title,
+		Data:    data,
+		Session: r.Session,
+	})
+}
+
+func (r *Request) PrintNotFound() {
+	r.PrintError(ErrorData{
+		Code:    http.StatusNotFound,
+		Message: "ressource not found",
 	})
 }
 

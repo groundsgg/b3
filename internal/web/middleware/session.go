@@ -1,31 +1,46 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 package middleware
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/groundsgg/b3/internal/web/request"
 )
 
-func verifyToken(tokenString, sessionKey string) (*request.SessionInfo, error) {
+func verifyToken(tokenString string, sessionKey []byte) (request.SessionInfo, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return sessionKey, nil
 	}, jwt.WithValidMethods([]string{"HS256"}))
 
 	if err != nil {
-		return nil, err
+		return request.SessionInfo{}, err
 	}
 
 	if !token.Valid {
-		return nil, fmt.Errorf("invalid token")
+		return request.SessionInfo{}, fmt.Errorf("invalid token")
 	}
 
-	return &request.SessionInfo{
-		PermissionGroup: request.VIEWER,
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return request.SessionInfo{}, fmt.Errorf("invalid token claims")
+	}
+
+	username, _ := claims["username"].(string)
+	plValue, ok := claims["pl"].(float64)
+	if !ok {
+		return request.SessionInfo{}, fmt.Errorf("invalid permission level claim")
+	}
+
+	return request.SessionInfo{
+		Username:        username,
+		PermissionLevel: request.PermissionLevel(plValue),
 	}, nil
 }
 
-func Session(key string) Middleware {
+// Session validates JWT cookies and attaches session info to the request.
+func Session(key []byte) Middleware {
 	return func(next Handler) Handler {
 		return func(req *request.Request) {
 			if c, err := req.OriginalRequest.Cookie("auth_token"); err == nil {
@@ -35,8 +50,29 @@ func Session(key string) Middleware {
 						"err", err,
 					)
 				}
-
 				req.Session = sesInfo
+			}
+
+			if req.Session.Username == "" {
+				req.Session = request.SessionInfo{
+					PermissionLevel: request.GROUP_GUEST,
+					Sign: func(tokenID, username string, pl request.PermissionLevel) (string, error) {
+						claims := jwt.MapClaims{
+							"sub":      tokenID,
+							"exp":      time.Now().Add(time.Hour * 24).Unix(),
+							"iat":      time.Now().Unix(),
+							"username": username,
+							"pl":       pl,
+						}
+
+						token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+						signedToken, err := token.SignedString(key)
+						if err != nil {
+							return "", err
+						}
+						return signedToken, nil
+					},
+				}
 			}
 
 			req.Logger.Debug("user session info",

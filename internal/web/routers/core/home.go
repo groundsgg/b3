@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 package core
 
 import (
@@ -8,10 +9,7 @@ import (
 
 func Home(req *request.Request) {
 	if req.OriginalRequest.URL.Path != "/" {
-		req.PrintError(request.ErrorData{
-			Code:    http.StatusNotFound,
-			Message: "Page not found",
-		})
+		req.PrintNotFound()
 		return
 	}
 
