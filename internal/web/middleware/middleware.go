@@ -1,17 +1,21 @@
 package middleware
 
-import "net/http"
+import (
+	"github.com/groundsgg/b3/internal/web/request"
+)
 
-type Middleware func(next http.Handler) http.Handler
+type Handler func(req *request.Request)
+
+type Middleware func(next Handler) Handler
 
 func Combine(middlewares ...Middleware) Middleware {
 	if len(middlewares) == 0 {
-		return func(next http.Handler) http.Handler {
+		return func(next Handler) Handler {
 			return next
 		}
 	}
 
-	return func(next http.Handler) http.Handler {
+	return func(next Handler) Handler {
 		stack := middlewares[len(middlewares)-1](next)
 		for i := len(middlewares) - 1; i > 0; i-- {
 			stack = middlewares[i-1](stack)

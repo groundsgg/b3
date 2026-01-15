@@ -3,6 +3,8 @@ package main
 import (
 	"cmp"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,6 +17,21 @@ import (
 )
 
 var logger *slog.Logger
+
+func loadSessionKey() (string, error) {
+	if value := os.Getenv("WEB_SESSION_KEY"); value != "" {
+		return value, nil
+	}
+
+	logger.Warn("generating random session key. Please set env WEB_SESSION_KEY")
+
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(buf), nil
+}
 
 func main() {
 	// init logger
@@ -33,6 +50,14 @@ func main() {
 		return
 	}
 
+	sessionKey, err := loadSessionKey()
+	if err != nil {
+		logger.Error("failed to generate session key",
+			"err", err,
+		)
+		return
+	}
+
 	// create server
 	server := web.NewServer(web.ServerConfig{
 		ListenAddr: cmp.Or(
@@ -43,8 +68,9 @@ func main() {
 			os.Getenv("WEB_BASE_URL"),
 			"http://localhost:8080",
 		),
-		Logger: logger.WithGroup("http"),
-		Pages:  renderer,
+		Logger:     logger.WithGroup("http"),
+		SessionKey: sessionKey,
+		Pages:      renderer,
 	})
 
 	// create shutdown context

@@ -2,16 +2,13 @@ package middleware
 
 import (
 	"cmp"
-	"context"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/groundsgg/b3/pkg/log"
+	"github.com/groundsgg/b3/internal/web/request"
 )
-
-type ctxReqID struct{}
 
 type statusCodeWriter struct {
 	w    http.ResponseWriter
@@ -32,24 +29,26 @@ func (sw *statusCodeWriter) WriteHeader(statusCode int) {
 }
 
 func HTTPLogging(parentLogger *slog.Logger) Middleware {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(next Handler) Handler {
+		return func(req *request.Request) {
 			start := time.Now()
 			reqID := uuid.NewString()
+			w := req.OriginalWriter
+			r := req.OriginalRequest
 
 			logger := parentLogger.With(
 				"req_id", reqID,
 			)
-
 			w.Header().Set("X-Request-ID", reqID)
-
-			ctx := log.WithLogger(r.Context(), logger)
-			ctx = context.WithValue(ctx, ctxReqID{}, reqID)
 			sw := &statusCodeWriter{w: w}
 
-			next.ServeHTTP(sw, r.WithContext(ctx))
+			req.OriginalWriter = sw
+			req.Logger = logger
+			req.ID = reqID
 
-			logger.Info("request received",
+			next(req)
+
+			logger.Info("request",
 				"method", r.Method,
 				"path", r.URL.Path,
 				"remote_addr", cmp.Or(
@@ -60,9 +59,9 @@ func HTTPLogging(parentLogger *slog.Logger) Middleware {
 				"code", sw.code,
 			)
 
-			logger.Debug("request completed",
+			logger.Debug("request info",
 				"duration_ms", time.Since(start).Milliseconds(),
 			)
-		})
+		}
 	}
 }

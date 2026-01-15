@@ -8,7 +8,9 @@ import (
 
 	"github.com/groundsgg/b3/internal/web/middleware"
 	"github.com/groundsgg/b3/internal/web/pages"
+	"github.com/groundsgg/b3/internal/web/request"
 	"github.com/groundsgg/b3/internal/web/routers"
+	"github.com/groundsgg/b3/internal/web/routers/core"
 )
 
 type Server struct {
@@ -51,10 +53,16 @@ func NewServer(cfg ServerConfig) *Server {
 	mw := middleware.Combine(
 		middleware.CORS(cfg.BaseURL),
 		middleware.HTTPLogging(cfg.Logger),
-		middleware.PagesContext(server.pages),
+		middleware.Session(cfg.SessionKey),
 	)
 
-	server.httpServer.Handler = mw(routers.CoreRouter())
+	mainRounter := routers.NewRouter()
+	mainRounter.Handle("/assets/", core.AssetsHandler())
+	mainRounter.Handle("/", core.Home)
+	mainRounter.Handle("/a", core.A)
+	mainRounter.Handle("/b", core.B)
+
+	server.httpServer.Handler = request.Parse(mw(mainRounter.Serve), server.pages)
 
 	return server
 }

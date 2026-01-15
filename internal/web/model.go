@@ -10,5 +10,6 @@ type ServerConfig struct {
 	ListenAddr string
 	Logger     *slog.Logger
 	BaseURL    string
+	SessionKey string
 	Pages      pages.Pages
 }
