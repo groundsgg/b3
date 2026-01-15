@@ -2,6 +2,19 @@
 
 B3 is your all-in-one home for Minecraft schematics, heightmaps, and everything your builds need.
 
+- [Configuration](#configuration)
+  - [Environment Variables](#environment-variables)
+  - [Auth Method: Basic Authentication](#auth-method-basic-authentication)
+    - [Format](#format)
+    - [Permission Levels](#permission-levels)
+    - [Password Hash](#password-hash)
+  - [Auth Method: OpenID Connect](#auth-method-openid-connect)
+    - [Required Scopes](#required-scopes)
+    - [Scope Mapping](#scope-mapping)
+    - [Supported `b3_group` Values](#supported-b3_group-values)
+- [License](#license)
+
+
 ## Configuration
 
 ### Environment Variables
@@ -82,3 +95,6 @@ This project is licensed under the GNU Affero General Public License v3 (AGPLv3)
 If you use this software to provide a service over a network, you must make the
 complete corresponding source code available to the users of that service,
 as required by the AGPL.
+
+
+[def]: #configuration
