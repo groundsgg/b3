@@ -4,15 +4,10 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 )
 
-func setTokenCookie(w http.ResponseWriter, username string, permissionLevel uint8) {
-
-}
-
-func GetAuthHandler() (AuthHandler, error) {
+func GetAuthHandler(baseURL string) (AuthHandler, error) {
 	at := os.Getenv("AUTH_TYPE")
 	if at == "" {
 		return nil, errors.New("env AUTH_TYPE is not defined")
@@ -21,7 +16,8 @@ func GetAuthHandler() (AuthHandler, error) {
 	switch at {
 	case "basic_auth":
 		return getBasicAuthHandler()
-	case "oauth2":
+	case "oidc":
+		return getOIDCHandler(baseURL)
 	}
 
 	return nil, fmt.Errorf("unknown AUTH_TYPE '%s'", at)

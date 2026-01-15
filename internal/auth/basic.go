@@ -26,11 +26,11 @@ func (h *basicHandler) Type() AuthType {
 	return BASIC_AUTH
 }
 
-func (h *basicHandler) PreLogin(_ *http.Request) {
-
+func (h *basicHandler) PreLogin(_ http.ResponseWriter, _ *http.Request) error {
+	return nil
 }
 
-func (h *basicHandler) LoginCallback(r *http.Request) LoginCallbackResult {
+func (h *basicHandler) LoginCallback(w http.ResponseWriter, r *http.Request) LoginCallbackResult {
 	r.ParseForm()
 	username := r.Form.Get("username")
 	password := r.Form.Get("password")

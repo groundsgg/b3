@@ -11,22 +11,31 @@ import (
 )
 
 func getLogin(req *request.Request) {
-	req.AuthHandler.PreLogin(req.OriginalRequest)
+	err := req.AuthHandler.PreLogin(req.OriginalWriter, req.OriginalRequest)
 
-	if req.AuthHandler.Type() == auth.BASIC_AUTH {
+	if err != nil {
+		req.PrintError(request.ErrorData{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	switch req.AuthHandler.Type() {
+	case auth.BASIC_AUTH:
 		req.OriginalWriter.WriteHeader(http.StatusOK)
 		req.PrintOnly("pages.login", "Login", request.ErrorData{})
-	} else {
+	case auth.OIDC:
+	default:
 		req.PrintError(request.ErrorData{
 			Code:    http.StatusInternalServerError,
 			Message: "internal server error",
 		})
 	}
-
 }
 
 func postLogin(req *request.Request) {
-	result := req.AuthHandler.LoginCallback(req.OriginalRequest)
+	result := req.AuthHandler.LoginCallback(req.OriginalWriter, req.OriginalRequest)
 
 	if result.Success {
 		if req.Session.Sign != nil {
@@ -67,6 +76,11 @@ func postLogin(req *request.Request) {
 		req.PrintOnly("pages.login", "Login", request.ErrorData{
 			Message: result.ErrorMessage,
 		})
+	} else if req.AuthHandler.Type() == auth.OIDC {
+		req.PrintError(request.ErrorData{
+			Message: result.ErrorMessage,
+			Code:    http.StatusBadRequest,
+		})
 	} else {
 		req.PrintError(request.ErrorData{
 			Code:    http.StatusInternalServerError,
@@ -95,6 +109,7 @@ func Handler() func(*request.Request) {
 
 	authRouter.Handle("GET /auth/login", notAuthenticated(getLogin))
 	authRouter.Handle("POST /auth/login", notAuthenticated(postLogin))
+	authRouter.Handle("GET /auth/code", notAuthenticated(postLogin))
 	authRouter.Handle("GET /auth/logout", authenticated(logout))
 	authRouter.Handle("/auth/", notFound)
 

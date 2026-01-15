@@ -4,7 +4,6 @@ package main
 import (
 	"cmp"
 	"context"
-	"crypto/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +12,7 @@ import (
 	"github.com/groundsgg/b3"
 	"github.com/groundsgg/b3/internal/auth"
 	"github.com/groundsgg/b3/internal/web"
+	"github.com/groundsgg/b3/pkg/gen"
 )
 
 func loadSessionKey() ([]byte, error) {
@@ -22,12 +22,7 @@ func loadSessionKey() ([]byte, error) {
 
 	logger.Warn("generating random session key. Please set env WEB_SESSION_KEY")
 
-	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return gen.Bytes(32)
 }
 
 func startServer() {
@@ -52,7 +47,10 @@ func startServer() {
 	}
 
 	// load auth handler
-	ah, err := auth.GetAuthHandler()
+	ah, err := auth.GetAuthHandler(cmp.Or(
+		os.Getenv("WEB_BASE_URL"),
+		"http://localhost:8080",
+	))
 	if err != nil {
 		logger.Error("failed to load auth handler",
 			"err", err,
