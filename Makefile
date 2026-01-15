@@ -1,8 +1,5 @@
-# run with basic auth: admin:admin (admin user) and vistor:vistor (viewer user)
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 dev:
 	set -a; . ./.env; set +a; \
-	go run cmd/b3/*
-
-dev-basic:
-	set -a; . ./.env.basic_auth.example; set +a; \
 	go run cmd/b3/*

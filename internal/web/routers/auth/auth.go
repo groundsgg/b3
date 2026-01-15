@@ -3,20 +3,25 @@ package auth
 
 import (
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/groundsgg/b3/internal/auth"
 	"github.com/groundsgg/b3/internal/web/request"
 	"github.com/groundsgg/b3/internal/web/routers"
+	"github.com/groundsgg/b3/pkg/log"
 )
 
 func getLogin(req *request.Request) {
-	err := req.AuthHandler.PreLogin(req.OriginalWriter, req.OriginalRequest)
+	ctx := log.WithLogger(req.OriginalRequest.Context(), req.Logger)
+	err := req.AuthHandler.PreLogin(req.OriginalWriter, req.OriginalRequest.WithContext(ctx))
 
 	if err != nil {
+		req.Logger.Warn("pre-login failed", "err", err)
 		req.PrintError(request.ErrorData{
 			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
+			Message: "internal server error",
 		})
 		return
 	}
@@ -35,7 +40,8 @@ func getLogin(req *request.Request) {
 }
 
 func postLogin(req *request.Request) {
-	result := req.AuthHandler.LoginCallback(req.OriginalWriter, req.OriginalRequest)
+	ctx := log.WithLogger(req.OriginalRequest.Context(), req.Logger)
+	result := req.AuthHandler.LoginCallback(req.OriginalWriter, req.OriginalRequest.WithContext(ctx))
 
 	if result.Success {
 		if req.Session.Sign != nil {
@@ -63,6 +69,7 @@ func postLogin(req *request.Request) {
 				HttpOnly: true,
 				Path:     "/",
 				SameSite: http.SameSiteLaxMode,
+				Secure:   strings.HasPrefix(os.Getenv("WEB_BASE_URL"), "https"),
 				MaxAge:   60 * 60 * 24, // 1 day
 			})
 		}
@@ -90,12 +97,15 @@ func postLogin(req *request.Request) {
 }
 
 func logout(req *request.Request) {
+	secureCookie := strings.HasPrefix(os.Getenv("WEB_BASE_URL"), "https")
 	http.SetCookie(req.OriginalWriter, &http.Cookie{
 		Name:     "auth_token",
 		Value:    "",
 		MaxAge:   -1,
 		HttpOnly: true,
 		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		Secure:   secureCookie,
 	})
 	http.Redirect(req.OriginalWriter, req.OriginalRequest, "/", http.StatusSeeOther)
 }

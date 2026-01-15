@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
 body > main {
     min-height: calc( 100vh - var(--spacing) * 18.5);
 }

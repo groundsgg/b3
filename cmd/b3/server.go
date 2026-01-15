@@ -46,17 +46,20 @@ func startServer() {
 		return
 	}
 
-	// load auth handler
-	ah, err := auth.GetAuthHandler(cmp.Or(
+	baseURL := cmp.Or(
 		os.Getenv("WEB_BASE_URL"),
 		"http://localhost:8080",
-	))
+	)
+
+	// load auth handler
+	ah, err := auth.GetAuthHandler(baseURL)
 	if err != nil {
 		logger.Error("failed to load auth handler",
 			"err", err,
 		)
 		return
 	}
+	logger.Info("using auth handler", "type", ah.Type())
 
 	// create server
 	server := web.NewServer(web.ServerConfig{
@@ -64,10 +67,7 @@ func startServer() {
 			os.Getenv("WEB_LISTEN_ADDR"),
 			":8080",
 		),
-		BaseURL: cmp.Or(
-			os.Getenv("WEB_BASE_URL"),
-			"http://localhost:8080",
-		),
+		BaseURL:     baseURL,
 		Logger:      logger.WithGroup("http"),
 		SessionKey:  sessionKey,
 		Pages:       renderer,
