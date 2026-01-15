@@ -7,6 +7,7 @@ import (
 	"os"
 )
 
+// GetAuthHandler builds the auth handler based on AUTH_TYPE and env config.
 func GetAuthHandler(baseURL string) (AuthHandler, error) {
 	at := os.Getenv("AUTH_TYPE")
 	if at == "" {

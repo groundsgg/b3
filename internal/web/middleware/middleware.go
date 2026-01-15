@@ -9,6 +9,7 @@ type Handler func(req *request.Request)
 
 type Middleware func(next Handler) Handler
 
+// Combine chains middlewares into a single middleware in the given order.
 func Combine(middlewares ...Middleware) Middleware {
 	if len(middlewares) == 0 {
 		return func(next Handler) Handler {

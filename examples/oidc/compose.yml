@@ -1,0 +1,16 @@
+services:
+  b3:
+    image: ghcr.io/groundsgg/b3:latest
+    container_name: b3
+    ports:
+      - "8080:8080"
+
+    environment:
+      WEB_BASE_URL: "https://b3.example.com"
+      WEB_SESSION_KEY: aVerySecureKey
+      AUTH_TYPE: oidc
+      AUTH_OIDC_CLIENT_ID: id
+      AUTH_OIDC_CLIENT_SECRET: secret
+      AUTH_OIDC_DISCOVERY_URL: https://auth.example.com/.well-known/openid-configuration
+
+    restart: unless-stopped

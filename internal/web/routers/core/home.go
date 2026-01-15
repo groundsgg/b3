@@ -7,6 +7,7 @@ import (
 	"github.com/groundsgg/b3/internal/web/request"
 )
 
+// Home renders the home page or returns 404 for non-root paths.
 func Home(req *request.Request) {
 	if req.OriginalRequest.URL.Path != "/" {
 		req.PrintNotFound()
@@ -14,7 +15,7 @@ func Home(req *request.Request) {
 	}
 
 	req.OriginalWriter.WriteHeader(http.StatusOK)
-	err := req.PrintOnly("pages.home", "Welcome to B3", nil)
+	err := req.Print("pages.home", "Welcome to B3", nil)
 	if err != nil {
 		req.Logger.Error("failed to parse template",
 			"template", "pages.home",

@@ -18,10 +18,12 @@ type SessionInfo struct {
 	Sign            SignRequest
 }
 
+// IsAuthenticated reports whether the session has a non-empty username.
 func (r *Request) IsAuthenticated() bool {
 	return r.Session.Username != ""
 }
 
+// HasPermission checks if the session meets the required permission level.
 func (r *Request) HasPermission(requiredLevel PermissionLevel) bool {
 	return r.Session.PermissionLevel >= requiredLevel
 }

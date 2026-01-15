@@ -24,7 +24,9 @@ type ErrorData struct {
 	Code    int
 }
 
-func (r *Request) PrintOnly(pageID, title string, data any) error {
+// Print renders a page template with the provided title and data.
+// No status code is set.
+func (r *Request) Print(pageID, title string, data any) error {
 	return r.pages.Render(r.OriginalWriter, pageID, pages.PageData{
 		Title:   title,
 		Data:    data,
@@ -32,6 +34,7 @@ func (r *Request) PrintOnly(pageID, title string, data any) error {
 	})
 }
 
+// PrintNotFound renders a 404 error page.
 func (r *Request) PrintNotFound() {
 	r.PrintError(ErrorData{
 		Code:    http.StatusNotFound,
@@ -39,7 +42,8 @@ func (r *Request) PrintNotFound() {
 	})
 }
 
+// PrintError writes an HTTP error code and renders the error page.
 func (r *Request) PrintError(data ErrorData) {
 	r.OriginalWriter.WriteHeader(data.Code)
-	r.PrintOnly("pages.error", "Error", data)
+	r.Print("pages.error", "Error", data)
 }

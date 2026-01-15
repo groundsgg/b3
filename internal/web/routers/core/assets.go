@@ -8,6 +8,7 @@ import (
 	"github.com/groundsgg/b3/internal/web/request"
 )
 
+// AssetsHandler serves embedded static assets under /assets/.
 func AssetsHandler() func(*request.Request) {
 	handler := http.StripPrefix("/assets/", http.FileServer(b3.Assets()))
 	return func(r *request.Request) {

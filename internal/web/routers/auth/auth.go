@@ -24,7 +24,7 @@ func getLogin(req *request.Request) {
 	switch req.AuthHandler.Type() {
 	case auth.BASIC_AUTH:
 		req.OriginalWriter.WriteHeader(http.StatusOK)
-		req.PrintOnly("pages.login", "Login", request.ErrorData{})
+		req.Print("pages.login", "Login", request.ErrorData{})
 	case auth.OIDC:
 	default:
 		req.PrintError(request.ErrorData{
@@ -73,7 +73,7 @@ func postLogin(req *request.Request) {
 
 	if req.AuthHandler.Type() == auth.BASIC_AUTH {
 		req.OriginalWriter.WriteHeader(http.StatusOK)
-		req.PrintOnly("pages.login", "Login", request.ErrorData{
+		req.Print("pages.login", "Login", request.ErrorData{
 			Message: result.ErrorMessage,
 		})
 	} else if req.AuthHandler.Type() == auth.OIDC {
@@ -104,6 +104,7 @@ func notFound(req *request.Request) {
 	req.PrintNotFound()
 }
 
+// Handler builds the auth router and returns its Serve handler.
 func Handler() func(*request.Request) {
 	authRouter := routers.NewRouter()
 

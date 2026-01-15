@@ -16,19 +16,23 @@ type statusCodeWriter struct {
 	code int
 }
 
+// Header returns the header map from the wrapped ResponseWriter.
 func (sw *statusCodeWriter) Header() http.Header {
 	return sw.w.Header()
 }
 
+// Write forwards the write to the wrapped ResponseWriter.
 func (sw *statusCodeWriter) Write(b []byte) (int, error) {
 	return sw.w.Write(b)
 }
 
+// WriteHeader records the status code before sending the response.
 func (sw *statusCodeWriter) WriteHeader(statusCode int) {
 	sw.code = statusCode
 	sw.w.WriteHeader(statusCode)
 }
 
+// HTTPLogging attaches request IDs and structured logs around handlers.
 func HTTPLogging(parentLogger *slog.Logger) Middleware {
 	return func(next Handler) Handler {
 		return func(req *request.Request) {

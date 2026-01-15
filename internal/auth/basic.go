@@ -22,14 +22,17 @@ type basicHandler struct {
 	users map[string]*basicUser
 }
 
+// Type returns BASIC_AUTH for the basic auth handler.
 func (h *basicHandler) Type() AuthType {
 	return BASIC_AUTH
 }
 
+// PreLogin is a no-op for basic auth.
 func (h *basicHandler) PreLogin(_ http.ResponseWriter, _ *http.Request) error {
 	return nil
 }
 
+// LoginCallback validates the submitted basic auth credentials.
 func (h *basicHandler) LoginCallback(w http.ResponseWriter, r *http.Request) LoginCallbackResult {
 	r.ParseForm()
 	username := r.Form.Get("username")

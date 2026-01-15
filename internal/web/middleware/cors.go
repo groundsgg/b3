@@ -7,6 +7,7 @@ import (
 	"github.com/groundsgg/b3/internal/web/request"
 )
 
+// CORS sets CORS headers for the given origin and handles preflight requests.
 func CORS(origin string) Middleware {
 	return func(next Handler) Handler {
 		return func(req *request.Request) {

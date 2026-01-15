@@ -19,10 +19,12 @@ type oidcHandler struct {
 	userEndpointURL string
 }
 
+// Type returns OIDC for the OIDC auth handler.
 func (h *oidcHandler) Type() AuthType {
 	return OIDC
 }
 
+// PreLogin starts the OIDC auth code flow and sets a state cookie.
 func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error {
 	state, err := gen.Hex(32)
 	if err != nil {
@@ -46,6 +48,7 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 	return nil
 }
 
+// LoginCallback handles the OIDC code exchange and user info lookup.
 func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) LoginCallbackResult {
 	rCTX := req.Context()
 
@@ -138,7 +141,7 @@ func getOIDCHandler(baseURL string) (AuthHandler, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	discovery, err := fetchDiscovery(ctx,
-		os.Getenv("AUTH_OIDC_WELL_KNOWN"),
+		os.Getenv("AUTH_OIDC_DISCOVERY_URL"),
 	)
 
 	if err != nil {
