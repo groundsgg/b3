@@ -49,7 +49,7 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 		Name:     "oidc_state",
 		Value:    state,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteStrictMode,
 		Secure:   h.secureCookie,
 		MaxAge:   300, // 5 minutes
 		Path:     "/",
@@ -59,7 +59,7 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 		Name:     "oidc_verifier",
 		Value:    verifier,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteStrictMode,
 		Secure:   h.secureCookie,
 		MaxAge:   300, // 5 minutes
 		Path:     "/",
@@ -99,7 +99,7 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 		Value:    "",
 		MaxAge:   -1,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteStrictMode,
 		Secure:   h.secureCookie,
 		Path:     "/",
 	})
@@ -113,7 +113,7 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 		Value:    "",
 		MaxAge:   -1,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteStrictMode,
 		Secure:   h.secureCookie,
 		Path:     "/",
 	})

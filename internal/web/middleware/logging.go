@@ -45,7 +45,7 @@ func HTTPLogging(parentLogger *slog.Logger) Middleware {
 				"req_id", reqID,
 			)
 			w.Header().Set("X-Request-ID", reqID)
-			sw := &statusCodeWriter{w: w}
+			sw := &statusCodeWriter{w: w, code: http.StatusOK}
 
 			req.OriginalWriter = sw
 			req.Logger = logger

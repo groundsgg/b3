@@ -62,7 +62,7 @@ func startServer() {
 	logger.Info("using auth handler", "type", ah.Type())
 
 	// create server
-	server := web.NewServer(web.ServerConfig{
+	server, err := web.NewServer(web.ServerConfig{
 		ListenAddr: cmp.Or(
 			os.Getenv("WEB_LISTEN_ADDR"),
 			":8080",
@@ -73,6 +73,12 @@ func startServer() {
 		Pages:       renderer,
 		AuthHandler: ah,
 	})
+	if err != nil {
+		logger.Error("failed to create server",
+			"err", err,
+		)
+		return
+	}
 
 	// create shutdown context
 	ctx, stop := signal.NotifyContext(

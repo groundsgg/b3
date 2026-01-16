@@ -22,10 +22,13 @@ func notAuthenticated(next middleware.Handler) middleware.Handler {
 func authenticated(next middleware.Handler) middleware.Handler {
 	return func(req *request.Request) {
 		if !req.IsAuthenticated() {
-			req.PrintError(request.ErrorData{
+			err := req.PrintError(request.ErrorData{
 				Code:    http.StatusUnauthorized,
 				Message: "unauthorized",
 			})
+			if err != nil {
+				req.Logger.Error("template rendering error", "err", err)
+			}
 			return
 		}
 

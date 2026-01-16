@@ -3,6 +3,7 @@ package b3
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"net/http"
 )
@@ -11,10 +12,10 @@ import (
 var assetsFS embed.FS
 
 // Assets returns a file system rooted at /assets for HTTP serving.
-func Assets() http.FileSystem {
+func Assets() (http.FileSystem, error) {
 	sub, err := fs.Sub(assetsFS, "assets")
 	if err != nil {
-		panic("assets directory missing from embedded FS")
+		return nil, fmt.Errorf("assets directory missing from embedded FS: %s", err.Error())
 	}
-	return http.FS(sub)
+	return http.FS(sub), nil
 }

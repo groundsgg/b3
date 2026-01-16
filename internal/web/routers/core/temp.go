@@ -11,11 +11,9 @@ import (
 func A(req *request.Request) {
 	req.OriginalWriter.WriteHeader(http.StatusOK)
 	err := req.Print("pages.a", "AAA", nil)
+
 	if err != nil {
-		req.Logger.Error("failed to parse template",
-			"template", "pages.a",
-			"err", err,
-		)
+		req.Logger.Error("template rendering error", "err", err)
 	}
 }
 
@@ -23,10 +21,8 @@ func A(req *request.Request) {
 func B(req *request.Request) {
 	req.OriginalWriter.WriteHeader(http.StatusOK)
 	err := req.Print("pages.b", "BBB", nil)
+
 	if err != nil {
-		req.Logger.Error("failed to parse template",
-			"template", "pages.b",
-			"err", err,
-		)
+		req.Logger.Error("template rendering error", "err", err)
 	}
 }

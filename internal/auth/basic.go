@@ -34,7 +34,13 @@ func (h *basicHandler) PreLogin(_ http.ResponseWriter, _ *http.Request) error {
 
 // LoginCallback validates the submitted basic auth credentials.
 func (h *basicHandler) LoginCallback(w http.ResponseWriter, r *http.Request) LoginCallbackResult {
-	r.ParseForm()
+	// Limit request body size to reduce DoS risk from large form posts.
+	r.Body = http.MaxBytesReader(w, r.Body, 8<<10) // 8 KiB
+	if err := r.ParseForm(); err != nil {
+		return LoginCallbackResult{
+			ErrorMessage: "invalid request",
+		}
+	}
 	username := r.Form.Get("username")
 	password := r.Form.Get("password")
 

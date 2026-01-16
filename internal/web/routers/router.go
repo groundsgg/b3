@@ -27,6 +27,8 @@ func (r *Router) Handle(pattern string, handler func(*request.Request)) {
 	r.mux.HandleFunc(pattern, func(ow http.ResponseWriter, or *http.Request) {
 		if req := r.getCTXReq(or.Context()); req != nil {
 			handler(req)
+		} else {
+			http.Error(ow, "internal server error", http.StatusInternalServerError)
 		}
 	})
 }

@@ -10,16 +10,16 @@ import (
 // Home renders the home page or returns 404 for non-root paths.
 func Home(req *request.Request) {
 	if req.OriginalRequest.URL.Path != "/" {
-		req.PrintNotFound()
+		err := req.PrintNotFound()
+		if err != nil {
+			req.Logger.Error("template rendering error", "err", err)
+		}
 		return
 	}
 
 	req.OriginalWriter.WriteHeader(http.StatusOK)
 	err := req.Print("pages.home", "Welcome to B3", nil)
 	if err != nil {
-		req.Logger.Error("failed to parse template",
-			"template", "pages.home",
-			"err", err,
-		)
+		req.Logger.Error("template rendering error", "err", err)
 	}
 }

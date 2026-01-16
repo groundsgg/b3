@@ -36,15 +36,15 @@ func (r *Request) Print(pageID, title string, data any) error {
 }
 
 // PrintNotFound renders a 404 error page.
-func (r *Request) PrintNotFound() {
-	r.PrintError(ErrorData{
+func (r *Request) PrintNotFound() error {
+	return r.PrintError(ErrorData{
 		Code:    http.StatusNotFound,
-		Message: "ressource not found",
+		Message: "resource not found",
 	})
 }
 
 // PrintError writes an HTTP error code and renders the error page.
-func (r *Request) PrintError(data ErrorData) {
+func (r *Request) PrintError(data ErrorData) error {
 	r.OriginalWriter.WriteHeader(data.Code)
-	r.Print("pages.error", "Error", data)
+	return r.Print("pages.error", "Error", data)
 }

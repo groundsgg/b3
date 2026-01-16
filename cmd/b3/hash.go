@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 func hashPassword() {
 	logger.Info("starting password hashing function")
 
-	if len(os.Args) < 2 {
+	if len(os.Args) < 3 {
 		logger.Error("please provide a password: <app> hash <password>")
 		return
 	}
@@ -29,8 +30,6 @@ func hashPassword() {
 		return
 	}
 
-	logger.Info("result",
-		"password", pass,
-		"hash", string(hash),
-	)
+	fmt.Println("")
+	fmt.Println(string(hash))
 }

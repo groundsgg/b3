@@ -19,23 +19,32 @@ func getLogin(req *request.Request) {
 
 	if err != nil {
 		req.Logger.Warn("pre-login failed", "err", err)
-		req.PrintError(request.ErrorData{
+		err := req.PrintError(request.ErrorData{
 			Code:    http.StatusInternalServerError,
 			Message: "internal server error",
 		})
+		if err != nil {
+			req.Logger.Error("template rendering error", "err", err)
+		}
 		return
 	}
 
 	switch req.AuthHandler.Type() {
 	case auth.BASIC_AUTH:
 		req.OriginalWriter.WriteHeader(http.StatusOK)
-		req.Print("pages.login", "Login", request.ErrorData{})
+		err := req.Print("pages.login", "Login", request.ErrorData{})
+		if err != nil {
+			req.Logger.Error("template rendering error", "err", err)
+		}
 	case auth.OIDC:
 	default:
-		req.PrintError(request.ErrorData{
+		err := req.PrintError(request.ErrorData{
 			Code:    http.StatusInternalServerError,
 			Message: "internal server error",
 		})
+		if err != nil {
+			req.Logger.Error("template rendering error", "err", err)
+		}
 	}
 }
 
@@ -49,10 +58,13 @@ func postLogin(req *request.Request) {
 			token, err := req.Session.Sign(tokenID, result.Username, request.PermissionLevel(result.PermissionLevel))
 			if err != nil {
 				req.Logger.Error("failed to create token", "err", err)
-				req.PrintError(request.ErrorData{
+				err := req.PrintError(request.ErrorData{
 					Code:    http.StatusInternalServerError,
 					Message: "internal server error",
 				})
+				if err != nil {
+					req.Logger.Error("template rendering error", "err", err)
+				}
 				return
 			}
 
@@ -68,7 +80,7 @@ func postLogin(req *request.Request) {
 				Value:    token,
 				HttpOnly: true,
 				Path:     "/",
-				SameSite: http.SameSiteLaxMode,
+				SameSite: http.SameSiteStrictMode,
 				Secure:   strings.HasPrefix(os.Getenv("WEB_BASE_URL"), "https"),
 				MaxAge:   60 * 60 * 24, // 1 day
 			})
@@ -80,19 +92,28 @@ func postLogin(req *request.Request) {
 
 	if req.AuthHandler.Type() == auth.BASIC_AUTH {
 		req.OriginalWriter.WriteHeader(http.StatusOK)
-		req.Print("pages.login", "Login", request.ErrorData{
+		err := req.Print("pages.login", "Login", request.ErrorData{
 			Message: result.ErrorMessage,
 		})
+		if err != nil {
+			req.Logger.Error("template rendering error", "err", err)
+		}
 	} else if req.AuthHandler.Type() == auth.OIDC {
-		req.PrintError(request.ErrorData{
+		err := req.PrintError(request.ErrorData{
 			Message: result.ErrorMessage,
 			Code:    http.StatusBadRequest,
 		})
+		if err != nil {
+			req.Logger.Error("template rendering error", "err", err)
+		}
 	} else {
-		req.PrintError(request.ErrorData{
+		err := req.PrintError(request.ErrorData{
 			Code:    http.StatusInternalServerError,
 			Message: "internal server error",
 		})
+		if err != nil {
+			req.Logger.Error("template rendering error", "err", err)
+		}
 	}
 }
 
@@ -104,14 +125,17 @@ func logout(req *request.Request) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteStrictMode,
 		Secure:   secureCookie,
 	})
 	http.Redirect(req.OriginalWriter, req.OriginalRequest, "/", http.StatusSeeOther)
 }
 
 func notFound(req *request.Request) {
-	req.PrintNotFound()
+	err := req.PrintNotFound()
+	if err != nil {
+		req.Logger.Error("template rendering error", "err", err)
+	}
 }
 
 // Handler builds the auth router and returns its Serve handler.

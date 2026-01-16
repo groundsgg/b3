@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 func verifyToken(tokenString string, sessionKey []byte) (request.SessionInfo, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return sessionKey, nil
-	}, jwt.WithValidMethods([]string{"HS256"}))
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithJSONNumber())
 
 	if err != nil {
 		return request.SessionInfo{}, err
@@ -27,15 +28,30 @@ func verifyToken(tokenString string, sessionKey []byte) (request.SessionInfo, er
 		return request.SessionInfo{}, fmt.Errorf("invalid token claims")
 	}
 
-	username, _ := claims["username"].(string)
-	plValue, ok := claims["pl"].(float64)
+	username, ok := claims["username"].(string)
+	if !ok || username == "" {
+		return request.SessionInfo{}, fmt.Errorf("invalid username claim")
+	}
+
+	//pl, err := parsePL(claims["pl"])
+	plVal, ok := claims["pl"]
 	if !ok {
-		return request.SessionInfo{}, fmt.Errorf("invalid permission level claim")
+		return request.SessionInfo{}, fmt.Errorf("missing permission level claim")
+	}
+
+	plN, ok := plVal.(json.Number)
+	if !ok {
+		return request.SessionInfo{}, fmt.Errorf("invalid permission level claim: %T", plVal)
+	}
+
+	pl, err := plN.Int64()
+	if err != nil {
+		return request.SessionInfo{}, fmt.Errorf("invalid permission level claim: %w", err)
 	}
 
 	return request.SessionInfo{
 		Username:        username,
-		PermissionLevel: request.PermissionLevel(plValue),
+		PermissionLevel: request.PermissionLevel(pl),
 	}, nil
 }
 

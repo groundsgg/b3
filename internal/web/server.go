@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/groundsgg/b3/internal/web/middleware"
 	"github.com/groundsgg/b3/internal/web/request"
@@ -38,10 +39,13 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 // NewServer builds a configured web server with routes and middleware.
-func NewServer(cfg ServerConfig) *Server {
+func NewServer(cfg ServerConfig) (*Server, error) {
 	server := &Server{
 		httpServer: &http.Server{
-			Addr: cfg.ListenAddr,
+			Addr:              cfg.ListenAddr,
+			ReadHeaderTimeout: time.Second * 5,
+			IdleTimeout:       time.Second * 60,
+			MaxHeaderBytes:    1 << 20, // 1 MiB
 		},
 		logger: cfg.Logger,
 		pages:  cfg.Pages,
@@ -53,8 +57,12 @@ func NewServer(cfg ServerConfig) *Server {
 		middleware.Session(cfg.SessionKey),
 	)
 
+	assetHandler, err := core.AssetsHandler()
+	if err != nil {
+		return nil, err
+	}
 	mainRouter := routers.NewRouter()
-	mainRouter.Handle("GET /assets/", core.AssetsHandler())
+	mainRouter.Handle("GET /assets/", assetHandler)
 	mainRouter.Handle("/auth/", auth.Handler())
 	mainRouter.Handle("/", core.Home)
 	mainRouter.Handle("/a", core.A)
@@ -62,5 +70,5 @@ func NewServer(cfg ServerConfig) *Server {
 
 	server.httpServer.Handler = request.Parse(mw(mainRouter.Serve), server.pages, cfg.AuthHandler)
 
-	return server
+	return server, nil
 }
