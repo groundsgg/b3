@@ -1,6 +1,8 @@
 <h1 align="center">Block3</h1>
+<p align="center">B3 is your all-in-one home for Minecraft schematics, heightmaps, and everything your builds need.</p>
+<br />
 
-B3 is your all-in-one home for Minecraft schematics, heightmaps, and everything your builds need.
+<h2>Table of Contents</h2>
 
 - [Configuration](#configuration)
   - [Environment Variables](#environment-variables)
@@ -11,7 +13,7 @@ B3 is your all-in-one home for Minecraft schematics, heightmaps, and everything 
   - [Auth Method: OpenID Connect](#auth-method-openid-connect)
     - [Required Scopes](#required-scopes)
     - [Scope Mapping](#scope-mapping)
-    - [Supported `b3_group` Values](#supported-b3_group-values)
+    - [Supported b3\_group Values](#supported-b3_group-values)
 - [License](#license)
 
 
@@ -82,7 +84,7 @@ In the identity provider, a scope-to-claim mapping must be configured:
 
 If the `b3_group` claim is not present in the UserInfo, authentication will fail.
 
-#### Supported `b3_group` Values
+#### Supported b3_group Values
 The following values are supported for the `b3_group` claim:
 - `viewer`
 - `editor`

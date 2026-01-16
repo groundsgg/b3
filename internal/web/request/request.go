@@ -28,9 +28,10 @@ type ErrorData struct {
 // No status code is set.
 func (r *Request) Print(pageID, title string, data any) error {
 	return r.pages.Render(r.OriginalWriter, pageID, pages.PageData{
-		Title:   title,
-		Data:    data,
-		Session: r.Session,
+		Title:     title,
+		Data:      data,
+		Session:   r.Session,
+		RequestID: r.ID,
 	})
 }
 
