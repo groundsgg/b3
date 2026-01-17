@@ -74,14 +74,20 @@ func postLogin(req *request.Request) {
 				"token_id", tokenID,
 			)
 
+			secure := strings.HasPrefix(os.Getenv("WEB_BASE_URL"), "https")
+			sameSite := http.SameSiteLaxMode
+			if secure {
+				sameSite = http.SameSiteNoneMode
+			}
+
 			// set token
 			http.SetCookie(req.OriginalWriter, &http.Cookie{
 				Name:     "auth_token",
 				Value:    token,
 				HttpOnly: true,
 				Path:     "/",
-				SameSite: http.SameSiteStrictMode,
-				Secure:   strings.HasPrefix(os.Getenv("WEB_BASE_URL"), "https"),
+				SameSite: sameSite,
+				Secure:   secure,
 				MaxAge:   60 * 60 * 24, // 1 day
 			})
 		}

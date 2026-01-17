@@ -44,12 +44,18 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 	if err != nil {
 		return err
 	}
+
+	sameSite := http.SameSiteLaxMode
+	if h.secureCookie {
+		sameSite = http.SameSiteNoneMode
+	}
+
 	// CSRF State Cookie
 	http.SetCookie(res, &http.Cookie{
 		Name:     "oidc_state",
 		Value:    state,
 		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 		Secure:   h.secureCookie,
 		MaxAge:   300, // 5 minutes
 		Path:     "/",
@@ -59,7 +65,7 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 		Name:     "oidc_verifier",
 		Value:    verifier,
 		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 		Secure:   h.secureCookie,
 		MaxAge:   300, // 5 minutes
 		Path:     "/",
@@ -94,12 +100,17 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 		return LoginCallbackResult{ErrorMessage: "invalid state"}
 	}
 
+	sameSite := http.SameSiteLaxMode
+	if h.secureCookie {
+		sameSite = http.SameSiteNoneMode
+	}
+
 	http.SetCookie(res, &http.Cookie{
 		Name:     "oidc_state",
 		Value:    "",
 		MaxAge:   -1,
 		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 		Secure:   h.secureCookie,
 		Path:     "/",
 	})
@@ -113,7 +124,7 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 		Value:    "",
 		MaxAge:   -1,
 		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 		Secure:   h.secureCookie,
 		Path:     "/",
 	})
