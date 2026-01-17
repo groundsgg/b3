@@ -52,6 +52,7 @@ func NewServer(cfg ServerConfig) (*Server, error) {
 	}
 
 	mw := middleware.Combine(
+		middleware.DrainBody(),
 		middleware.CORS(cfg.BaseURL),
 		middleware.HTTPLogging(cfg.Logger),
 		middleware.Session(cfg.SessionKey),
