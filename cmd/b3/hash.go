@@ -2,25 +2,21 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 func hashPassword() {
-	logger.Info("starting password hashing function")
+	reader := bufio.NewReader(os.Stdin)
 
-	if len(os.Args) < 3 {
-		logger.Error("please provide a password: <app> hash <password>")
-		return
-	}
-
-	pass := strings.Join(os.Args[2:], " ")
+	fmt.Print("Enter Password: ")
+	password, _ := reader.ReadString('\n')
 
 	hash, err := bcrypt.GenerateFromPassword(
-		[]byte(pass),
+		[]byte(password),
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
@@ -30,6 +26,6 @@ func hashPassword() {
 		return
 	}
 
-	fmt.Println("")
+	fmt.Print("Hash: ")
 	fmt.Println(string(hash))
 }

@@ -13,7 +13,7 @@ var logger *slog.Logger
 func main() {
 	logger = log.BuildRootLogger()
 
-	if len(os.Args) > 1 {
+	if len(os.Args) == 2 {
 		switch os.Args[1] {
 		case "hash":
 			hashPassword()

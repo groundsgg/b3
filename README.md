@@ -62,7 +62,9 @@ Permission levels are defined numerically as follows:
 Passwords must be provided as bcrypt hashes.
 A bcrypt hash can be generated using the following command:
 ```shell
-b3 hash <password>
+$ b3 hash
+Enter Password: <password>
+Hash: <hash>
 ```
 
 ### Auth Method: OpenID Connect
