@@ -92,7 +92,8 @@ func Session(key []byte) Middleware {
 			}
 
 			req.Logger.Debug("user session info",
-				"session", req.Session,
+				"username", req.Session.Username,
+				"pl", req.Session.PermissionLevel,
 			)
 
 			next(req)
