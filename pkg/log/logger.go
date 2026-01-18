@@ -5,15 +5,41 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"strings"
 )
 
 type ctxKeyLogger struct{}
 
 // BuildRootLogger returns a JSON slog.Logger writing to stdout.
-func BuildRootLogger(options *slog.HandlerOptions) *slog.Logger {
-	return slog.New(
+func BuildRootLogger() *slog.Logger {
+	options := &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}
+
+	invalidLogLevel := false
+
+	switch strings.ToLower(os.Getenv("LOGGING_LEVEL")) {
+	case "debug":
+		options.Level = slog.LevelDebug
+	case "info", "":
+		options.Level = slog.LevelInfo
+	case "warn":
+		options.Level = slog.LevelWarn
+	case "error":
+		options.Level = slog.LevelError
+	default:
+		invalidLogLevel = true
+	}
+
+	logger := slog.New(
 		slog.NewJSONHandler(os.Stdout, options),
 	)
+
+	if invalidLogLevel {
+		logger.Warn("invalid logging level; using info", "level", os.Getenv("LOGGING_LEVEL"))
+	}
+
+	return logger
 }
 
 // WithLogger stores the logger in the context for downstream handlers.

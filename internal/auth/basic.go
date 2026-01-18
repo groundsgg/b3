@@ -2,13 +2,12 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
+	"github.com/groundsgg/b3/internal/config"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -62,14 +61,10 @@ func (h *basicHandler) LoginCallback(w http.ResponseWriter, r *http.Request) Log
 }
 
 func getBasicAuthHandler() (AuthHandler, error) {
-	rawUsers := os.Getenv("AUTH_BASIC_USERS")
-	if rawUsers == "" {
-		return nil, errors.New("please define users in AUTH_BASIC_USERS")
-	}
 
 	users := make(map[string]*basicUser)
 
-	usersList := strings.Split(rawUsers, ",")
+	usersList := config.GetConfig().Auth.Basic.Users
 	for _, rawUser := range usersList {
 		args := strings.Split(rawUser, ":")
 		if len(args) != 3 {

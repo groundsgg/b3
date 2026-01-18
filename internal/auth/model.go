@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package auth
 
-import "net/http"
+import (
+	"net/http"
+
+	"golang.org/x/oauth2"
+)
 
 type AuthType string
 
@@ -38,4 +42,9 @@ type OIDCUserInfo struct {
 	FamilyName string `json:"family_name"`
 	Picture    string `json:"picture"`
 	B3Group    string `json:"b3_group"`
+}
+
+type oidcHandler struct {
+	providerCfg     *oauth2.Config
+	userEndpointURL string
 }

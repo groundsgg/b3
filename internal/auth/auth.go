@@ -2,25 +2,19 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"strings"
+
+	"github.com/groundsgg/b3/internal/config"
 )
 
 // GetAuthHandler builds the auth handler based on AUTH_TYPE and env config.
-func GetAuthHandler(baseURL string) (AuthHandler, error) {
-	at := os.Getenv("AUTH_TYPE")
-	if at == "" {
-		return nil, errors.New("env AUTH_TYPE is not defined")
-	}
-
-	switch strings.ToLower(at) {
+func GetAuthHandler() (AuthHandler, error) {
+	switch config.GetConfig().Auth.Type {
 	case "basic_auth":
 		return getBasicAuthHandler()
 	case "oidc":
-		return getOIDCHandler(baseURL)
+		return getOIDCHandler()
 	}
 
-	return nil, fmt.Errorf("unknown AUTH_TYPE '%s'", at)
+	return nil, fmt.Errorf("unknown AUTH_TYPE '%s'", config.GetConfig().Auth.Type)
 }

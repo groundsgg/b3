@@ -25,6 +25,7 @@ All variables are read from the environment. Defaults are listed when present.
 
 | Variable | Default | Required | Notes |
 | --- | --- | --- | --- |
+| `LOGGING_LEVEL` | `info` | No | Sets the log level. |
 | `WEB_LISTEN_ADDR` | `:8080` | No | HTTP listen address. |
 | `WEB_BASE_URL` | `http://localhost:8080` | No | Public base URL used for redirects and CORS. |
 | `WEB_SESSION_KEY` | none (generated) | No | If unset, a random key is generated. Set in production to keep sessions stable. |

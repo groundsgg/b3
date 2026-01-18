@@ -2,7 +2,6 @@
 package main
 
 import (
-	"cmp"
 	"context"
 	"os"
 	"os/signal"
@@ -11,65 +10,41 @@ import (
 
 	"github.com/groundsgg/b3"
 	"github.com/groundsgg/b3/internal/auth"
+	"github.com/groundsgg/b3/internal/config"
 	"github.com/groundsgg/b3/internal/web"
-	"github.com/groundsgg/b3/pkg/gen"
 )
 
-func loadSessionKey() ([]byte, error) {
-	if value := os.Getenv("WEB_SESSION_KEY"); value != "" {
-		return []byte(value), nil
+func createServer() *web.Server {
+	err := config.Load()
+	if err != nil {
+		logger.Error("failed to load config envs",
+			"err", err,
+		)
+		return nil
 	}
 
-	logger.Warn("generating random session key. Please set env WEB_SESSION_KEY")
-
-	return gen.Bytes(32)
-}
-
-func startServer() {
-	logger.Info("starting server application")
-
-	// load templates
 	renderer, err := b3.NewRenderer()
 	if err != nil {
 		logger.Error("failed to load html templates",
 			"err", err,
 		)
-		return
+		return nil
 	}
 
-	// load session key
-	sessionKey, err := loadSessionKey()
-	if err != nil {
-		logger.Error("failed to generate session key",
-			"err", err,
-		)
-		return
-	}
-
-	baseURL := cmp.Or(
-		os.Getenv("WEB_BASE_URL"),
-		"http://localhost:8080",
-	)
-
-	// load auth handler
-	ah, err := auth.GetAuthHandler(baseURL)
+	ah, err := auth.GetAuthHandler()
 	if err != nil {
 		logger.Error("failed to load auth handler",
 			"err", err,
 		)
-		return
+		return nil
 	}
 	logger.Info("using auth handler", "type", ah.Type())
 
-	// create server
 	server, err := web.NewServer(web.ServerConfig{
-		ListenAddr: cmp.Or(
-			os.Getenv("WEB_LISTEN_ADDR"),
-			":8080",
-		),
-		BaseURL:     baseURL,
+		ListenAddr:  config.GetConfig().Web.ListenAddr,
+		BaseURL:     config.GetConfig().Web.BaseURL,
 		Logger:      logger.WithGroup("http"),
-		SessionKey:  sessionKey,
+		SessionKey:  []byte(config.GetConfig().Web.SessionKey),
 		Pages:       renderer,
 		AuthHandler: ah,
 	})
@@ -77,10 +52,19 @@ func startServer() {
 		logger.Error("failed to create server",
 			"err", err,
 		)
+		return nil
+	}
+	return server
+}
+
+func startServer() {
+	logger.Info("starting server application")
+
+	server := createServer()
+	if server == nil {
 		return
 	}
 
-	// create shutdown context
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -98,7 +82,6 @@ func startServer() {
 		}
 	}()
 
-	// start web server
 	if err := server.Start(); err != nil {
 		logger.Error("failed to start the web server",
 			"err", err,

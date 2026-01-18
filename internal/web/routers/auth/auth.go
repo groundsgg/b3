@@ -3,11 +3,10 @@ package auth
 
 import (
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/groundsgg/b3/internal/auth"
+	"github.com/groundsgg/b3/internal/config"
 	"github.com/groundsgg/b3/internal/web/request"
 	"github.com/groundsgg/b3/internal/web/routers"
 	"github.com/groundsgg/b3/pkg/log"
@@ -74,7 +73,7 @@ func postLogin(req *request.Request) {
 				"token_id", tokenID,
 			)
 
-			secure := strings.HasPrefix(os.Getenv("WEB_BASE_URL"), "https")
+			secure := config.IsSecureConnection()
 			sameSite := http.SameSiteLaxMode
 			if secure {
 				sameSite = http.SameSiteNoneMode
@@ -124,15 +123,20 @@ func postLogin(req *request.Request) {
 }
 
 func logout(req *request.Request) {
-	secureCookie := strings.HasPrefix(os.Getenv("WEB_BASE_URL"), "https")
+	secure := config.IsSecureConnection()
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
+
 	http.SetCookie(req.OriginalWriter, &http.Cookie{
 		Name:     "auth_token",
 		Value:    "",
 		MaxAge:   -1,
 		HttpOnly: true,
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		Secure:   secureCookie,
+		SameSite: sameSite,
+		Secure:   secure,
 	})
 	http.Redirect(req.OriginalWriter, req.OriginalRequest, "/", http.StatusSeeOther)
 }

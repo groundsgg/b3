@@ -6,23 +6,16 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/groundsgg/b3/internal/config"
 	"github.com/groundsgg/b3/pkg/gen"
 	"github.com/groundsgg/b3/pkg/log"
 	"golang.org/x/oauth2"
 )
-
-type oidcHandler struct {
-	providerCfg     *oauth2.Config
-	userEndpointURL string
-	secureCookie    bool
-}
 
 func pkceChallengeS256(verifier string) string {
 	sum := sha256.Sum256([]byte(verifier))
@@ -46,7 +39,8 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 	}
 
 	sameSite := http.SameSiteLaxMode
-	if h.secureCookie {
+	secure := config.IsSecureConnection()
+	if secure {
 		sameSite = http.SameSiteNoneMode
 	}
 
@@ -56,7 +50,7 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 		Value:    state,
 		HttpOnly: true,
 		SameSite: sameSite,
-		Secure:   h.secureCookie,
+		Secure:   secure,
 		MaxAge:   300, // 5 minutes
 		Path:     "/",
 	})
@@ -66,7 +60,7 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 		Value:    verifier,
 		HttpOnly: true,
 		SameSite: sameSite,
-		Secure:   h.secureCookie,
+		Secure:   secure,
 		MaxAge:   300, // 5 minutes
 		Path:     "/",
 	})
@@ -101,7 +95,8 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 	}
 
 	sameSite := http.SameSiteLaxMode
-	if h.secureCookie {
+	secure := config.IsSecureConnection()
+	if secure {
 		sameSite = http.SameSiteNoneMode
 	}
 
@@ -111,7 +106,7 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: sameSite,
-		Secure:   h.secureCookie,
+		Secure:   secure,
 		Path:     "/",
 	})
 
@@ -125,7 +120,7 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: sameSite,
-		Secure:   h.secureCookie,
+		Secure:   secure,
 		Path:     "/",
 	})
 
@@ -200,34 +195,21 @@ func fetchDiscovery(ctx context.Context, wellKnownURL string) (*OIDCDiscovery, e
 	return &d, nil
 }
 
-func getOIDCHandler(baseURL string) (AuthHandler, error) {
+func getOIDCHandler() (AuthHandler, error) {
+	cfg := config.GetConfig().Auth.OIDC
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	discoveryURL := os.Getenv("AUTH_OIDC_DISCOVERY_URL")
-	if discoveryURL == "" {
-		return nil, errors.New("please define AUTH_OIDC_DISCOVERY_URL")
-	}
 
-	discovery, err := fetchDiscovery(ctx, discoveryURL)
+	discovery, err := fetchDiscovery(ctx, cfg.DiscoveryURL)
 
 	if err != nil {
 		return nil, err
 	}
 
-	cID := os.Getenv("AUTH_OIDC_CLIENT_ID")
-	if cID == "" {
-		return nil, errors.New("please define AUTH_OIDC_CLIENT_ID")
-	}
-
-	cSecret := os.Getenv("AUTH_OIDC_CLIENT_SECRET")
-	if cSecret == "" {
-		return nil, errors.New("please define AUTH_OIDC_CLIENT_SECRET")
-	}
-
-	cfg := &oauth2.Config{
-		ClientID:     cID,
-		ClientSecret: cSecret,
-		RedirectURL:  strings.TrimSuffix(baseURL, "/") + "/auth/code",
+	provider := &oauth2.Config{
+		ClientID:     cfg.ClientID,
+		ClientSecret: cfg.ClientSecret,
+		RedirectURL:  strings.TrimSuffix(config.GetConfig().Web.BaseURL, "/") + "/auth/code",
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  discovery.AuthorizationEndpoint,
 			TokenURL: discovery.TokenEndpoint,
@@ -236,8 +218,7 @@ func getOIDCHandler(baseURL string) (AuthHandler, error) {
 	}
 
 	return &oidcHandler{
-		providerCfg:     cfg,
+		providerCfg:     provider,
 		userEndpointURL: discovery.UserinfoEndpoint,
-		secureCookie:    strings.HasPrefix(baseURL, "https"),
 	}, nil
 }
