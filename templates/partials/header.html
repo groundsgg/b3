@@ -1,0 +1,16 @@
+{{ define "partials.header" }}
+<header class="flex bg-cyan-700 h-10 leading-10 px-[15vw] text-white">
+    <nav class="flex-auto">
+        <a href="/" class="mr-5 hover:underline cursor-pointer">Home</a>
+        <a href="/a" class="mr-5 hover:underline cursor-pointer">A</a>
+        <a href="/b" class="mr-5 hover:underline cursor-pointer">B</a>
+    </nav>
+    <div class="flex-none">
+        {{ if eq .Session.Username "" }}
+        <a href="/auth/login" class="hover:underline cursor-pointer">Login</a>
+        {{ else }}
+        <a href="/auth/logout" class="hover:underline cursor-pointer">Logout ({{ .Session.Username }})</a>
+        {{ end }}
+    </div>
+</header>
+{{ end }}

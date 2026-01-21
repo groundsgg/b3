@@ -1,0 +1,16 @@
+
+services:
+  b3:
+    image: ghcr.io/groundsgg/b3:latest
+    container_name: b3
+    ports:
+      - "8080:8080"
+
+    environment:
+      WEB_BASE_URL: "https://b3.example.com"
+      WEB_SESSION_KEY: aVerySecureKey
+      AUTH_TYPE: basic_auth
+      # admin:admin (Admin) and vistor:vistor (Viewer)
+      AUTH_BASIC_USERS: 'admin:20:$2a$10$F.9XEuzSgSimEHusYJdjBOSHD5VOqxW6apw5lVwEQaLRmer1sqiNe,vistor:5:$2a$10$LscaSomf.L4ZYYH3r6jIUu5ygqut3dAG4epppIf1NEImiMSe5cvoG'
+
+    restart: unless-stopped

@@ -7,3 +7,5 @@
 
 # compiled output
 /dist
+
+/.env

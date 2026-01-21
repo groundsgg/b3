@@ -1,0 +1,4 @@
+
+body > main {
+    min-height: calc( 100vh - var(--spacing) * 18.5);
+}

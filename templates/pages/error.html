@@ -1,0 +1,9 @@
+{{ define "pages.error" }}
+{{ template "head" . }}
+<div class="text-center text-2xl pt-[35vh]">
+    <p class="font-mono text-9xl text-gray-400">{{ .Data.Code }}</p>
+    <p>{{ .Data.Message }}</p>
+    <p class="text-xs mt-5">Request-ID: {{ .RequestID }}</p>
+</div>
+{{ template "end" . }}
+{{ end }}
