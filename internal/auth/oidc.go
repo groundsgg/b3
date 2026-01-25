@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,15 +12,10 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/groundsgg/b3/internal/config"
+	"github.com/groundsgg/b3/internal/web/cookie"
 	"github.com/groundsgg/b3/pkg/gen"
 	"github.com/groundsgg/b3/pkg/log"
 	"golang.org/x/oauth2"
-)
-
-const (
-	OIDC_STATE    string = "oidc_state"
-	OIDC_VERIFIER string = "oidc_verifier"
-	OIDC_NONCE    string = "oidc_nonce"
 )
 
 func pkceChallengeS256(verifier string) string {
@@ -50,13 +44,13 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 	}
 
 	// CSRF State Cookie
-	setCookie(res, OIDC_STATE, state, 5*time.Minute)
+	cookie.Set(res, cookie.OIDC_STATE, state, 5*time.Minute)
 
 	// PKCE code_verifier cookie
-	setCookie(res, OIDC_VERIFIER, verifier, 5*time.Minute)
+	cookie.Set(res, cookie.OIDC_VERIFIER, verifier, 5*time.Minute)
 
 	// PKCE code_verifier cookie
-	setCookie(res, OIDC_NONCE, nonce, 5*time.Minute)
+	cookie.Set(res, cookie.OIDC_NONCE, nonce, 5*time.Minute)
 
 	url := h.oauthCfg.AuthCodeURL(state,
 		oauth2.AccessTypeOffline,
@@ -69,88 +63,43 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 	return nil
 }
 
-func (h *oidcHandler) VerifyToken(b64Token string) (*UserInfo, error) {
-	rawToken, err := base64.RawStdEncoding.DecodeString(b64Token)
-	if err != nil {
-		return nil, fmt.Errorf("invalid token format: %w", err)
-	}
-
-	var token oauth2.Token
-	err = json.Unmarshal(rawToken, &token)
-	if err != nil {
-		return nil, fmt.Errorf("invalid token format: %w", err)
-	}
-	ts := h.oauthCfg.TokenSource(context.Background(), &token)
-	t, err := ts.Token()
-	if err != nil {
-		return nil, fmt.Errorf("token refreshing error: %w", err)
-	}
-
-	idToken, err := h.verifier.Verify(context.Background(), t.AccessToken)
-	if err != nil {
-		return nil, fmt.Errorf("token verification error: %w", err)
-	}
-	var user OIDCUserInfo
-	if err := idToken.Claims(&user); err != nil {
-		return nil, fmt.Errorf("userinfo decode failed: %w", err)
-	}
-
-	var pl int
-	switch strings.ToLower(user.B3Group) {
-	case "viewer":
-		pl = 5
-	case "editor":
-		pl = 10
-	case "admin":
-		pl = 20
-	default:
-		return nil, fmt.Errorf("unknown b3 group: %s", user.B3Group)
-	}
-
-	ui := &UserInfo{Username: user.Name, PermissionLevel: pl}
-	if token.AccessToken != t.AccessToken {
-		authToken, err := json.Marshal(t)
-		if err == nil {
-			ui.NewToken = base64.RawStdEncoding.EncodeToString(authToken)
-		}
-	}
-
-	return ui, nil
-}
-
-func (h *oidcHandler) verifyCookies(res http.ResponseWriter, req *http.Request) (string, string, error) {
+func (h *oidcHandler) getCookies(res http.ResponseWriter, req *http.Request) (oidcCookies, error) {
+	cookies := oidcCookies{}
 	queryState := req.URL.Query().Get("state")
 	if queryState == "" {
-		return "", "", errors.New("missing state")
+		return cookies, errors.New("missing state")
 	}
 
-	setCookie(res, OIDC_STATE, "", -1)
-	setCookie(res, OIDC_VERIFIER, "", -1)
-	setCookie(res, OIDC_NONCE, "", -1)
+	cookie.Delete(res, cookie.OIDC_STATE)
+	cookie.Delete(res, cookie.OIDC_VERIFIER)
+	cookie.Delete(res, cookie.OIDC_NONCE)
 
-	cookie, err := req.Cookie(OIDC_STATE)
+	cState, err := req.Cookie(cookie.OIDC_STATE)
 	if err != nil {
-		return "", "", errors.New("missing state cookie")
+		return cookies, errors.New("missing state cookie")
 	}
+	cookies.State = cState.Value
 
-	if cookie.Value != queryState {
-		return "", "", errors.New("invalid state")
-	}
-
-	verifierCookie, err := req.Cookie(OIDC_VERIFIER)
+	cVerifier, err := req.Cookie(cookie.OIDC_VERIFIER)
 	if err != nil {
-		return "", "", errors.New("missing pkce verifier")
+		return cookies, errors.New("missing pkce verifier")
 	}
+	cookies.Verifier = cVerifier.Value
 
-	nonceCookie, err := req.Cookie(OIDC_NONCE)
+	cNonce, err := req.Cookie(cookie.OIDC_NONCE)
 	if err != nil {
-		return "", "", errors.New("missing nonce cookie")
+		return cookies, errors.New("missing nonce cookie")
+	}
+	cookies.Nonce = cNonce.Value
+
+	if cState.Value != queryState {
+		return cookies, errors.New("invalid state")
 	}
 
-	return verifierCookie.Value, nonceCookie.Value, nil
+	return cookies, nil
 }
 
-func (h *oidcHandler) exchangeUserinfo(ctx context.Context, code, verifierState, nonce string) (*OIDCUserInfo, *oauth2.Token, error) {
+func (h *oidcHandler) exchangeUserInfo(ctx context.Context, code, verifierState, nonce string) (*OIDCUserInfo, *oauth2.Token, error) {
 	rctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
@@ -173,13 +122,8 @@ func (h *oidcHandler) exchangeUserinfo(ctx context.Context, code, verifierState,
 		return nil, nil, errors.New("nonce did not match")
 	}
 
-	userInfo, err := h.provider.UserInfo(ctx, oauth2.StaticTokenSource(oauthToken))
-	if err != nil {
-		return nil, nil, fmt.Errorf("userinfo request failed: %w", err)
-	}
-
 	var user OIDCUserInfo
-	if err := userInfo.Claims(&user); err != nil {
+	if err := idToken.Claims(&user); err != nil {
 		return nil, nil, fmt.Errorf("userinfo decode failed: %w", err)
 	}
 
@@ -190,7 +134,7 @@ func (h *oidcHandler) exchangeUserinfo(ctx context.Context, code, verifierState,
 func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) LoginCallbackResult {
 	logger := log.LoggerFromContext(req.Context())
 
-	verifierState, nonce, err := h.verifyCookies(res, req)
+	cookies, err := h.getCookies(res, req)
 	if err != nil {
 		return LoginCallbackResult{ErrorMessage: err.Error()}
 	}
@@ -200,32 +144,26 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 		return LoginCallbackResult{ErrorMessage: "missing code"}
 	}
 
-	user, token, err := h.exchangeUserinfo(req.Context(), code, verifierState, nonce)
+	user, token, err := h.exchangeUserInfo(req.Context(), code, cookies.Verifier, cookies.Nonce)
 	if err != nil {
 		logger.Warn("oidc verification failed", "err", err)
 		return LoginCallbackResult{ErrorMessage: "verification failed"}
 	}
 
-	var pl uint8
-	switch strings.ToLower(user.B3Group) {
-	case "viewer":
-		pl = 5
-	case "editor":
-		pl = 10
-	case "admin":
-		pl = 20
-	default:
+	pl, err := h.groupToPL(user.B3Group)
+	if err != nil {
+		logger.Warn("oidc group parsing failed", "err", err)
 		return LoginCallbackResult{ErrorMessage: "You are not authorized to log in"}
 	}
 
-	authToken, err := json.Marshal(token)
+	authToken, err := h.buildAuthToken(token)
 	if err != nil {
 		logger.Warn("oidc token parsing failed", "err", err)
 		return LoginCallbackResult{ErrorMessage: "internal error"}
 	}
 
 	return LoginCallbackResult{Success: true,
-		Token:           base64.RawStdEncoding.EncodeToString(authToken),
+		Token:           authToken,
 		Username:        user.Name,
 		PermissionLevel: pl,
 	}
@@ -250,7 +188,12 @@ func getOIDCHandler() (AuthHandler, error) {
 		ClientSecret: cfg.ClientSecret,
 		RedirectURL:  strings.TrimSuffix(config.GetConfig().Web.BaseURL, "/") + "/auth/code",
 		Endpoint:     provider.Endpoint(),
-		Scopes:       []string{oidc.ScopeOpenID, "profile", "offline_access", "b3"},
+		Scopes: []string{
+			oidc.ScopeOpenID,
+			"profile",
+			"offline_access",
+			"b3",
+		},
 	}
 
 	return &oidcHandler{

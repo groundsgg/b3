@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"net/http"
+	"time"
 
 	"github.com/groundsgg/b3/internal/auth"
-	"github.com/groundsgg/b3/internal/config"
+	"github.com/groundsgg/b3/internal/web/cookie"
 	"github.com/groundsgg/b3/internal/web/request"
 )
 
@@ -18,6 +18,7 @@ func Session(authHandler auth.AuthHandler) Middleware {
 					req.Logger.Warn("token validation failed",
 						"err", err,
 					)
+					cookie.Delete(req.OriginalWriter, cookie.AUTH_TOKEN)
 				} else {
 					req.Session = request.SessionInfo{
 						Username:        userInfo.Username,
@@ -26,20 +27,7 @@ func Session(authHandler auth.AuthHandler) Middleware {
 
 					if userInfo.NewToken != "" {
 						req.Logger.Info("token refreshed")
-						sameSite := http.SameSiteLaxMode
-						secure := config.IsSecureConnection()
-						if secure {
-							sameSite = http.SameSiteNoneMode
-						}
-						http.SetCookie(req.OriginalWriter, &http.Cookie{
-							Name:     "auth_token",
-							Value:    userInfo.NewToken,
-							HttpOnly: true,
-							SameSite: sameSite,
-							Secure:   secure,
-							MaxAge:   60 * 60 * 24,
-							Path:     "/",
-						})
+						cookie.Set(req.OriginalWriter, cookie.AUTH_TOKEN, userInfo.NewToken, 24*30*time.Hour)
 					}
 				}
 			}

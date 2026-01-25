@@ -2,16 +2,13 @@ package auth
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/groundsgg/b3/internal/auth"
-	"github.com/groundsgg/b3/internal/config"
+	"github.com/groundsgg/b3/internal/web/cookie"
 	"github.com/groundsgg/b3/internal/web/request"
 	"github.com/groundsgg/b3/internal/web/routers"
 	"github.com/groundsgg/b3/pkg/log"
-)
-
-const (
-	AUTH_TOKEN string = "auth_token"
 )
 
 func getLogin(req *request.Request) {
@@ -59,22 +56,8 @@ func postLogin(req *request.Request) {
 			"pl", result.PermissionLevel,
 		)
 
-		secure := config.IsSecureConnection()
-		sameSite := http.SameSiteLaxMode
-		if secure {
-			sameSite = http.SameSiteNoneMode
-		}
-
 		// set token
-		http.SetCookie(req.OriginalWriter, &http.Cookie{
-			Name:     AUTH_TOKEN,
-			Value:    result.Token,
-			HttpOnly: true,
-			Path:     "/",
-			SameSite: sameSite,
-			Secure:   secure,
-			MaxAge:   60 * 60 * 24, // 1 day
-		})
+		cookie.Set(req.OriginalWriter, cookie.AUTH_TOKEN, result.Token, 24*30*time.Hour)
 
 		http.Redirect(req.OriginalWriter, req.OriginalRequest, "/", http.StatusSeeOther)
 		return
@@ -108,21 +91,7 @@ func postLogin(req *request.Request) {
 }
 
 func logout(req *request.Request) {
-	secure := config.IsSecureConnection()
-	sameSite := http.SameSiteLaxMode
-	if secure {
-		sameSite = http.SameSiteNoneMode
-	}
-
-	http.SetCookie(req.OriginalWriter, &http.Cookie{
-		Name:     AUTH_TOKEN,
-		Value:    "",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Path:     "/",
-		SameSite: sameSite,
-		Secure:   secure,
-	})
+	cookie.Delete(req.OriginalWriter, cookie.AUTH_TOKEN)
 	http.Redirect(req.OriginalWriter, req.OriginalRequest, "/", http.StatusSeeOther)
 }
 

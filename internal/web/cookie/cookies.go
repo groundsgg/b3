@@ -1,4 +1,4 @@
-package auth
+package cookie
 
 import (
 	"net/http"
@@ -7,7 +7,18 @@ import (
 	"github.com/groundsgg/b3/internal/config"
 )
 
-func setCookie(res http.ResponseWriter, name, value string, lifetime time.Duration) {
+const (
+	OIDC_STATE    string = "oidc_state"
+	OIDC_VERIFIER string = "oidc_verifier"
+	OIDC_NONCE    string = "oidc_nonce"
+	AUTH_TOKEN    string = "auth_token"
+)
+
+func Delete(res http.ResponseWriter, name string) {
+	Set(res, name, "", -1)
+}
+
+func Set(res http.ResponseWriter, name, value string, lifetime time.Duration) {
 	sameSite := http.SameSiteLaxMode
 	secure := config.IsSecureConnection()
 	if secure {

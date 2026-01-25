@@ -71,6 +71,6 @@ func (jwtH *jwtTokenHandler) verify(rawToken string) (*UserInfo, error) {
 
 	return &UserInfo{
 		Username:        username,
-		PermissionLevel: int(pl),
+		PermissionLevel: uint8(pl),
 	}, nil
 }

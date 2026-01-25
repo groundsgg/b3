@@ -31,7 +31,7 @@ type AuthHandler interface {
 
 type UserInfo struct {
 	Username        string
-	PermissionLevel int
+	PermissionLevel uint8
 	NewToken        string
 }
 
@@ -63,4 +63,10 @@ type oidcHandler struct {
 	oauthCfg *oauth2.Config
 	verifier *oidc.IDTokenVerifier
 	provider *oidc.Provider
+}
+
+type oidcCookies struct {
+	State    string
+	Verifier string
+	Nonce    string
 }
