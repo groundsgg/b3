@@ -7,14 +7,14 @@ import (
 	"github.com/groundsgg/b3/internal/config"
 )
 
-func setAuthCookie(res http.ResponseWriter, name, value string, lifetime time.Duration) {
+func setCookie(res http.ResponseWriter, name, value string, lifetime time.Duration) {
 	sameSite := http.SameSiteLaxMode
 	secure := config.IsSecureConnection()
 	if secure {
 		sameSite = http.SameSiteNoneMode
 	}
 
-	http.SetCookie(res, &http.Cookie{
+	c := &http.Cookie{
 		Name:     name,
 		Value:    value,
 		HttpOnly: true,
@@ -22,5 +22,11 @@ func setAuthCookie(res http.ResponseWriter, name, value string, lifetime time.Du
 		Secure:   secure,
 		MaxAge:   int(lifetime.Seconds()),
 		Path:     "/",
-	})
+	}
+
+	if lifetime == -1 {
+		c.MaxAge = -1
+	}
+
+	http.SetCookie(res, c)
 }

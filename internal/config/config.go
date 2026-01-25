@@ -32,7 +32,7 @@ func loadEnvs() (*config, error) {
 		cfg.Auth.OIDC = &AuthOIDC{
 			ClientID:     os.Getenv("AUTH_OIDC_CLIENT_ID"),
 			ClientSecret: os.Getenv("AUTH_OIDC_CLIENT_SECRET"),
-			DiscoveryURL: os.Getenv("AUTH_OIDC_DISCOVERY_URL"),
+			Issuer:       os.Getenv("AUTH_OIDC_ISSUER"),
 		}
 	default:
 		return nil, fmt.Errorf("unknown AUTH_TYPE '%s'", cfg.Auth.Type)

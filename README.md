@@ -31,7 +31,7 @@ All variables are read from the environment. Defaults are listed when present.
 | `WEB_SESSION_KEY` | none (generated) | No | If unset, a random key is generated. Set in production to keep sessions stable. |
 | `AUTH_TYPE` | none | Yes | `basic_auth` or `oidc`. Controls which auth variables are required. |
 | `AUTH_BASIC_USERS` | none | Yes (basic_auth) | Comma-separated list: `name:permission-level:bcrypt-hash`. |
-| `AUTH_OIDC_DISCOVERY_URL` | none | Yes (oidc) | OIDC discovery URL. |
+| `AUTH_OIDC_ISSUER` | none | Yes (oidc) | OIDC provider URL. |
 | `AUTH_OIDC_CLIENT_ID` | none | Yes (oidc) | OIDC client ID. |
 | `AUTH_OIDC_CLIENT_SECRET` | none | Yes (oidc) | OIDC client secret. |
 
@@ -68,7 +68,7 @@ Hash: <hash>
 ```
 
 ### Auth Method: OpenID Connect
-To enable OpenID Connect (OIDC), the client ID (`AUTH_OIDC_CLIENT_ID`), client secret (`AUTH_OIDC_CLIENT_SECRET`), and discovery URL (`AUTH_OIDC_DISCOVERY_URL`) must be configured.
+To enable OpenID Connect (OIDC), the client ID (`AUTH_OIDC_CLIENT_ID`), client secret (`AUTH_OIDC_CLIENT_SECRET`), and discovery URL (`AUTH_OIDC_ISSUER`) must be configured.
 
 See the provided [Docker Compose](/examples/oidc/compose.yml) example for a complete setup.
 

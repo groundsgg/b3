@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 )
 
@@ -31,6 +32,7 @@ type AuthHandler interface {
 type UserInfo struct {
 	Username        string
 	PermissionLevel int
+	NewToken        string
 }
 
 type basicUser struct {
@@ -53,16 +55,12 @@ type OIDCDiscovery struct {
 }
 
 type OIDCUserInfo struct {
-	Sub        string `json:"sub"`
-	Name       string `json:"name"`
-	GivenName  string `json:"given_name"`
-	FamilyName string `json:"family_name"`
-	Picture    string `json:"picture"`
-	B3Group    string `json:"b3_group"`
+	Name    string `json:"name"`
+	B3Group string `json:"b3_group"`
 }
 
 type oidcHandler struct {
-	providerCfg     *oauth2.Config
-	userEndpointURL string
-	jwtH            *jwtTokenHandler
+	oauthCfg *oauth2.Config
+	verifier *oidc.IDTokenVerifier
+	provider *oidc.Provider
 }

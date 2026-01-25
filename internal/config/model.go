@@ -13,7 +13,7 @@ type AuthBasic struct {
 type AuthOIDC struct {
 	ClientID     string `validate:"required"`
 	ClientSecret string `validate:"required"`
-	DiscoveryURL string `validate:"required,url"`
+	Issuer       string `validate:"required,url"`
 }
 
 type Auth struct {
