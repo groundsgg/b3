@@ -3,12 +3,15 @@ package auth
 import (
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/groundsgg/b3/internal/auth"
 	"github.com/groundsgg/b3/internal/config"
 	"github.com/groundsgg/b3/internal/web/request"
 	"github.com/groundsgg/b3/internal/web/routers"
 	"github.com/groundsgg/b3/pkg/log"
+)
+
+const (
+	AUTH_TOKEN string = "auth_token"
 )
 
 func getLogin(req *request.Request) {
@@ -51,44 +54,27 @@ func postLogin(req *request.Request) {
 	result := req.AuthHandler.LoginCallback(req.OriginalWriter, req.OriginalRequest.WithContext(ctx))
 
 	if result.Success {
-		if req.Session.Sign != nil {
-			tokenID := uuid.NewString()
-			token, err := req.Session.Sign(tokenID, result.Username, request.PermissionLevel(result.PermissionLevel))
-			if err != nil {
-				req.Logger.Error("failed to create token", "err", err)
-				err := req.PrintError(request.ErrorData{
-					Code:    http.StatusInternalServerError,
-					Message: "internal server error",
-				})
-				if err != nil {
-					req.Logger.Error("template rendering error", "err", err)
-				}
-				return
-			}
+		req.Logger.Info("created user session",
+			"username", result.Username,
+			"pl", result.PermissionLevel,
+		)
 
-			req.Logger.Info("created user session",
-				"username", result.Username,
-				"pl", result.PermissionLevel,
-				"token_id", tokenID,
-			)
-
-			secure := config.IsSecureConnection()
-			sameSite := http.SameSiteLaxMode
-			if secure {
-				sameSite = http.SameSiteNoneMode
-			}
-
-			// set token
-			http.SetCookie(req.OriginalWriter, &http.Cookie{
-				Name:     "auth_token",
-				Value:    token,
-				HttpOnly: true,
-				Path:     "/",
-				SameSite: sameSite,
-				Secure:   secure,
-				MaxAge:   60 * 60 * 24, // 1 day
-			})
+		secure := config.IsSecureConnection()
+		sameSite := http.SameSiteLaxMode
+		if secure {
+			sameSite = http.SameSiteNoneMode
 		}
+
+		// set token
+		http.SetCookie(req.OriginalWriter, &http.Cookie{
+			Name:     AUTH_TOKEN,
+			Value:    result.Token,
+			HttpOnly: true,
+			Path:     "/",
+			SameSite: sameSite,
+			Secure:   secure,
+			MaxAge:   60 * 60 * 24, // 1 day
+		})
 
 		http.Redirect(req.OriginalWriter, req.OriginalRequest, "/", http.StatusSeeOther)
 		return
@@ -129,7 +115,7 @@ func logout(req *request.Request) {
 	}
 
 	http.SetCookie(req.OriginalWriter, &http.Cookie{
-		Name:     "auth_token",
+		Name:     AUTH_TOKEN,
 		Value:    "",
 		MaxAge:   -1,
 		HttpOnly: true,

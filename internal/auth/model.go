@@ -18,12 +18,30 @@ type LoginCallbackResult struct {
 	ErrorMessage    string
 	Username        string
 	PermissionLevel uint8
+	Token           string
 }
 
 type AuthHandler interface {
 	Type() AuthType
 	PreLogin(http.ResponseWriter, *http.Request) error
 	LoginCallback(http.ResponseWriter, *http.Request) LoginCallbackResult
+	VerifyToken(string) (*UserInfo, error)
+}
+
+type UserInfo struct {
+	Username        string
+	PermissionLevel int
+}
+
+type basicUser struct {
+	Name            string
+	PasswordHash    []byte
+	PermissionLevel uint8
+}
+
+type basicHandler struct {
+	users map[string]*basicUser
+	jwtH  *jwtTokenHandler
 }
 
 type OIDCDiscovery struct {
@@ -46,4 +64,5 @@ type OIDCUserInfo struct {
 type oidcHandler struct {
 	providerCfg     *oauth2.Config
 	userEndpointURL string
+	jwtH            *jwtTokenHandler
 }

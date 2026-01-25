@@ -9,12 +9,9 @@ const (
 	GROUP_ADMIN  PermissionLevel = 20
 )
 
-type SignRequest func(tokenID, username string, pl PermissionLevel) (string, error)
-
 type SessionInfo struct {
 	Username        string
 	PermissionLevel PermissionLevel
-	Sign            SignRequest
 }
 
 // IsAuthenticated reports whether the session has a non-empty username.
