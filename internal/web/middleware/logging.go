@@ -52,7 +52,7 @@ func HTTPLogging(parentLogger *slog.Logger) Middleware {
 
 			next(req)
 
-			logger.Info("request",
+			req.Logger.Info("request",
 				"method", r.Method,
 				"path", r.URL.Path,
 				"remote_addr", cmp.Or(
@@ -63,7 +63,7 @@ func HTTPLogging(parentLogger *slog.Logger) Middleware {
 				"code", sw.code,
 			)
 
-			logger.Debug("request info",
+			req.Logger.Debug("request info",
 				"duration_ms", time.Since(start).Milliseconds(),
 			)
 		}

@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"time"
-
 	"github.com/groundsgg/b3/internal/auth"
 	"github.com/groundsgg/b3/internal/web/cookie"
 	"github.com/groundsgg/b3/internal/web/request"
@@ -12,7 +10,7 @@ import (
 func Session(authHandler auth.AuthHandler) Middleware {
 	return func(next Handler) Handler {
 		return func(req *request.Request) {
-			if c, err := req.OriginalRequest.Cookie("auth_token"); err == nil {
+			if c, err := req.OriginalRequest.Cookie(cookie.AUTH_TOKEN); err == nil {
 				userInfo, err := authHandler.VerifyToken(c.Value)
 				if err != nil {
 					req.Logger.Warn("token validation failed",
@@ -24,10 +22,14 @@ func Session(authHandler auth.AuthHandler) Middleware {
 						Username:        userInfo.Username,
 						PermissionLevel: request.PermissionLevel(userInfo.PermissionLevel),
 					}
+					req.Logger = req.Logger.With("session_id", userInfo.SessionID)
 
 					if userInfo.NewToken != "" {
-						req.Logger.Info("token refreshed")
-						cookie.Set(req.OriginalWriter, cookie.AUTH_TOKEN, userInfo.NewToken, 24*30*time.Hour)
+						req.Logger.Info("user session refreshed",
+							"username", userInfo.Username,
+							"permission_level", userInfo.PermissionLevel,
+						)
+						cookie.Set(req.OriginalWriter, cookie.AUTH_TOKEN, userInfo.NewToken, cookie.AUTH_TOKEN_LIFETIME)
 					}
 				}
 			}
@@ -40,7 +42,7 @@ func Session(authHandler auth.AuthHandler) Middleware {
 
 			req.Logger.Debug("user session info",
 				"username", req.Session.Username,
-				"pl", req.Session.PermissionLevel,
+				"permission_level", req.Session.PermissionLevel,
 			)
 
 			next(req)

@@ -20,6 +20,7 @@ type LoginCallbackResult struct {
 	Username        string
 	PermissionLevel uint8
 	Token           string
+	SessionID       string
 }
 
 type AuthHandler interface {
@@ -33,6 +34,7 @@ type UserInfo struct {
 	Username        string
 	PermissionLevel uint8
 	NewToken        string
+	SessionID       string
 }
 
 type basicUser struct {
@@ -55,6 +57,7 @@ type OIDCDiscovery struct {
 }
 
 type OIDCUserInfo struct {
+	Subject string `json:"sub"`
 	Name    string `json:"name"`
 	B3Group string `json:"b3_group"`
 }

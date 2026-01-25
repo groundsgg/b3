@@ -54,7 +54,7 @@ func validateConfig(cfg *config) error {
 	return nil
 }
 
-// Load loads and validates all given envs
+// Load loads configuration from environment variables and validates it.
 func Load() error {
 	cfg, err := loadEnvs()
 	if err != nil {
@@ -70,7 +70,7 @@ func Load() error {
 	return nil
 }
 
-// GetConfig returns the loaded global config
+// GetConfig returns the loaded global config (loading it on first use).
 func GetConfig() *config {
 	if globalConfig == nil {
 		if err := Load(); err != nil {
@@ -80,7 +80,7 @@ func GetConfig() *config {
 	return globalConfig
 }
 
-// IsSecureConnection returns if the base URL is a secure connection
+// IsSecureConnection reports whether the configured base URL uses HTTPS.
 func IsSecureConnection() bool {
-	return strings.HasPrefix(globalConfig.Web.BaseURL, "https")
+	return strings.HasPrefix(GetConfig().Web.BaseURL, "https")
 }

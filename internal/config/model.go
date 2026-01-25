@@ -3,7 +3,7 @@ package config
 type Web struct {
 	ListenAddr string `validate:"listenaddr" default:":8080"`
 	BaseURL    string `validate:"required,url" default:"http://localhost:8080"`
-	SessionKey string `validate:"required,min=16"`
+	SessionKey string `validate:"required,min=32"`
 }
 
 type AuthBasic struct {

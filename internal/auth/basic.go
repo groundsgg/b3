@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/groundsgg/b3/internal/config"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -20,6 +21,7 @@ func (h *basicHandler) PreLogin(_ http.ResponseWriter, _ *http.Request) error {
 	return nil
 }
 
+// VerifyToken validates the auth token and returns the associated user info.
 func (h *basicHandler) VerifyToken(token string) (*UserInfo, error) {
 	return h.jwtH.verify(token)
 }
@@ -39,7 +41,8 @@ func (h *basicHandler) LoginCallback(w http.ResponseWriter, r *http.Request) Log
 	if username != "" && password != "" {
 		if user := h.users[strings.ToLower(username)]; user != nil {
 			if err := bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(password)); err == nil {
-				token, err := h.jwtH.sign(user.Name, int(user.PermissionLevel))
+				tokenID := uuid.NewString()
+				token, err := h.jwtH.sign(tokenID, user.Name, int(user.PermissionLevel))
 				if err != nil {
 					return LoginCallbackResult{
 						ErrorMessage: "failed to create a session",
@@ -50,6 +53,7 @@ func (h *basicHandler) LoginCallback(w http.ResponseWriter, r *http.Request) Log
 					Username:        user.Name,
 					PermissionLevel: user.PermissionLevel,
 					Token:           token,
+					SessionID:       tokenID,
 				}
 			}
 		}

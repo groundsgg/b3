@@ -12,6 +12,6 @@ services:
       AUTH_TYPE: oidc
       AUTH_OIDC_CLIENT_ID: id
       AUTH_OIDC_CLIENT_SECRET: secret
-      AUTH_OIDC_DISCOVERY_URL: https://auth.example.com/.well-known/openid-configuration
+      AUTH_OIDC_ISSUER: https://auth.example.com/
 
     restart: unless-stopped

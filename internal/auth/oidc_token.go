@@ -11,7 +11,7 @@ import (
 )
 
 func (h *oidcHandler) parseAuthToken(rawToken string) (*oauth2.Token, error) {
-	jToken, err := base64.RawStdEncoding.DecodeString(rawToken)
+	jToken, err := base64.RawURLEncoding.DecodeString(rawToken)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func (h *oidcHandler) buildAuthToken(token *oauth2.Token) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return base64.RawStdEncoding.EncodeToString(jToken), nil
+	return base64.RawURLEncoding.EncodeToString(jToken), nil
 }
 
 func (h *oidcHandler) groupToPL(group string) (uint8, error) {
@@ -44,6 +44,7 @@ func (h *oidcHandler) groupToPL(group string) (uint8, error) {
 	return pl, nil
 }
 
+// VerifyToken verifies the provided OIDC token, refreshing it if needed, and returns user info.
 func (h *oidcHandler) VerifyToken(b64Token string) (*UserInfo, error) {
 	token, err := h.parseAuthToken(b64Token)
 	if err != nil {
@@ -56,7 +57,12 @@ func (h *oidcHandler) VerifyToken(b64Token string) (*UserInfo, error) {
 		return nil, fmt.Errorf("token refreshing error: %w", err)
 	}
 
-	idToken, err := h.verifier.Verify(context.Background(), t.AccessToken)
+	rawIDToken, ok := t.Extra("id_token").(string)
+	if !ok {
+		return nil, fmt.Errorf("token verification error: no id token")
+	}
+
+	idToken, err := h.verifier.Verify(context.Background(), rawIDToken)
 	if err != nil {
 		return nil, fmt.Errorf("token verification error: %w", err)
 	}
@@ -71,7 +77,7 @@ func (h *oidcHandler) VerifyToken(b64Token string) (*UserInfo, error) {
 		return nil, err
 	}
 
-	ui := &UserInfo{Username: user.Name, PermissionLevel: pl}
+	ui := &UserInfo{Username: user.Name, PermissionLevel: pl, SessionID: idToken.Subject}
 	if token.AccessToken != t.AccessToken {
 		authToken, err := h.buildAuthToken(t)
 		if err == nil {

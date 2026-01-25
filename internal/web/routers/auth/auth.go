@@ -2,7 +2,6 @@ package auth
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/groundsgg/b3/internal/auth"
 	"github.com/groundsgg/b3/internal/web/cookie"
@@ -54,10 +53,11 @@ func postLogin(req *request.Request) {
 		req.Logger.Info("created user session",
 			"username", result.Username,
 			"pl", result.PermissionLevel,
+			"session_id", result.SessionID,
 		)
 
 		// set token
-		cookie.Set(req.OriginalWriter, cookie.AUTH_TOKEN, result.Token, 24*30*time.Hour)
+		cookie.Set(req.OriginalWriter, cookie.AUTH_TOKEN, result.Token, cookie.AUTH_TOKEN_LIFETIME)
 
 		http.Redirect(req.OriginalWriter, req.OriginalRequest, "/", http.StatusSeeOther)
 		return

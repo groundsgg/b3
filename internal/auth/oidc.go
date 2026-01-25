@@ -43,13 +43,13 @@ func (h *oidcHandler) PreLogin(res http.ResponseWriter, req *http.Request) error
 		return err
 	}
 
-	// CSRF State Cookie
+	// CSRF State cookie
 	cookie.Set(res, cookie.OIDC_STATE, state, 5*time.Minute)
 
 	// PKCE code_verifier cookie
 	cookie.Set(res, cookie.OIDC_VERIFIER, verifier, 5*time.Minute)
 
-	// PKCE code_verifier cookie
+	// Nonce cookie
 	cookie.Set(res, cookie.OIDC_NONCE, nonce, 5*time.Minute)
 
 	url := h.oauthCfg.AuthCodeURL(state,
@@ -99,11 +99,11 @@ func (h *oidcHandler) getCookies(res http.ResponseWriter, req *http.Request) (oi
 	return cookies, nil
 }
 
-func (h *oidcHandler) exchangeUserInfo(ctx context.Context, code, verifierState, nonce string) (*OIDCUserInfo, *oauth2.Token, error) {
+func (h *oidcHandler) exchangeUserInfo(ctx context.Context, code, codeVerifier, nonce string) (*OIDCUserInfo, *oauth2.Token, error) {
 	rctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	oauthToken, err := h.oauthCfg.Exchange(rctx, code, oauth2.SetAuthURLParam("code_verifier", verifierState))
+	oauthToken, err := h.oauthCfg.Exchange(rctx, code, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
 	if err != nil {
 		return nil, nil, fmt.Errorf("token exchange failed: %w", err)
 	}
@@ -113,7 +113,7 @@ func (h *oidcHandler) exchangeUserInfo(ctx context.Context, code, verifierState,
 		return nil, nil, errors.New("no id_token field in oauth2 token")
 	}
 
-	idToken, err := h.verifier.Verify(ctx, rawIDToken)
+	idToken, err := h.verifier.Verify(rctx, rawIDToken)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to verify ID Token: %w", err)
 	}
@@ -166,6 +166,7 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 		Token:           authToken,
 		Username:        user.Name,
 		PermissionLevel: pl,
+		SessionID:       user.Subject,
 	}
 }
 

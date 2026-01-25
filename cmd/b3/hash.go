@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -15,7 +16,7 @@ func hashPassword() {
 	password, _ := reader.ReadString('\n')
 
 	hash, err := bcrypt.GenerateFromPassword(
-		[]byte(password),
+		[]byte(strings.TrimSpace(password)),
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
