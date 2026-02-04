@@ -12,7 +12,6 @@ type ServerConfig struct {
 	ListenAddr  string
 	Logger      *slog.Logger
 	BaseURL     string
-	SessionKey  []byte
 	Pages       pages.Pages
 	AuthHandler auth.AuthHandler
 }

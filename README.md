@@ -28,7 +28,8 @@ All variables are read from the environment. Defaults are listed when present.
 | `LOGGING_LEVEL` | `info` | No | Sets the log level. |
 | `WEB_LISTEN_ADDR` | `:8080` | No | HTTP listen address. |
 | `WEB_BASE_URL` | `http://localhost:8080` | No | Public base URL used for redirects and CORS. |
-| `WEB_SESSION_KEY` | none (generated) | No | If unset, a random key is generated. Set in production to keep sessions stable. |
+| `WEB_SESSION_SIGN_KEY` | none | Yes | min length 32 chars |
+| `WEB_SESSION_ENCRYPT_KEY` | none | Yes | min length 32 chars |
 | `AUTH_TYPE` | none | Yes | `basic_auth` or `oidc`. Controls which auth variables are required. |
 | `AUTH_BASIC_USERS` | none | Yes (basic_auth) | Comma-separated list: `name:permission-level:bcrypt-hash`. |
 | `AUTH_OIDC_ISSUER` | none | Yes (oidc) | OIDC provider URL. |
@@ -85,7 +86,7 @@ In the identity provider, a scope-to-claim mapping must be configured:
 - Scope: `b3`
 - Claim: `b3_group`
 
-If the `b3_group` claim is not present in the UserInfo, authentication will fail.
+If the `b3_group` claim is not present in the ID Token, authentication will fail.
 
 #### Supported b3_group Values
 The following values are supported for the `b3_group` claim:

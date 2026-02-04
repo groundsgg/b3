@@ -13,7 +13,7 @@ const (
 	OIDC_NONCE    string = "oidc_nonce"
 	AUTH_TOKEN    string = "auth_token"
 
-	AUTH_TOKEN_LIFETIME time.Duration = time.Hour * 24 * 30
+	AUTH_TOKEN_LIFETIME time.Duration = time.Hour * 24
 )
 
 // Delete clears a cookie by setting it with a negative lifetime.

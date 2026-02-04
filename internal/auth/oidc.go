@@ -99,35 +99,40 @@ func (h *oidcHandler) getCookies(res http.ResponseWriter, req *http.Request) (oi
 	return cookies, nil
 }
 
-func (h *oidcHandler) exchangeUserInfo(ctx context.Context, code, codeVerifier, nonce string) (*OIDCUserInfo, *oauth2.Token, error) {
+func (h *oidcHandler) exchangeUserInfo(ctx context.Context, code, codeVerifier, nonce string) (*OIDCUserInfo, *oauth2.Token, time.Time, error) {
 	rctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
 	oauthToken, err := h.oauthCfg.Exchange(rctx, code, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
 	if err != nil {
-		return nil, nil, fmt.Errorf("token exchange failed: %w", err)
+		return nil, nil, time.Time{}, fmt.Errorf("token exchange failed: %w", err)
 	}
 
 	rawIDToken, ok := oauthToken.Extra("id_token").(string)
 	if !ok {
-		return nil, nil, errors.New("no id_token field in oauth2 token")
+		return nil, nil, time.Time{}, errors.New("no id_token field in oauth2 token")
 	}
 
 	idToken, err := h.verifier.Verify(rctx, rawIDToken)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to verify ID Token: %w", err)
+		return nil, nil, time.Time{}, fmt.Errorf("failed to verify ID Token: %w", err)
 	}
 
 	if idToken.Nonce != nonce {
-		return nil, nil, errors.New("nonce did not match")
+		return nil, nil, time.Time{}, errors.New("nonce did not match")
 	}
 
 	var user OIDCUserInfo
 	if err := idToken.Claims(&user); err != nil {
-		return nil, nil, fmt.Errorf("userinfo decode failed: %w", err)
+		return nil, nil, time.Time{}, fmt.Errorf("userinfo decode failed: %w", err)
 	}
 
-	return &user, oauthToken, nil
+	expiry := idToken.Expiry
+	if expiry.IsZero() {
+		expiry = oauthToken.Expiry
+	}
+
+	return &user, oauthToken, expiry, nil
 }
 
 // LoginCallback handles the OIDC code exchange and user info lookup.
@@ -144,21 +149,21 @@ func (h *oidcHandler) LoginCallback(res http.ResponseWriter, req *http.Request) 
 		return LoginCallbackResult{ErrorMessage: "missing code"}
 	}
 
-	user, token, err := h.exchangeUserInfo(req.Context(), code, cookies.Verifier, cookies.Nonce)
+	user, oauthToken, expiry, err := h.exchangeUserInfo(req.Context(), code, cookies.Verifier, cookies.Nonce)
 	if err != nil {
 		logger.Warn("oidc verification failed", "err", err)
 		return LoginCallbackResult{ErrorMessage: "verification failed"}
 	}
 
-	pl, err := h.groupToPL(user.B3Group)
-	if err != nil {
-		logger.Warn("oidc group parsing failed", "err", err)
-		return LoginCallbackResult{ErrorMessage: "You are not authorized to log in"}
-	}
-
-	authToken, err := h.buildAuthToken(token)
+	authToken, err := h.buildAuthToken(user, oauthToken.RefreshToken, expiry)
 	if err != nil {
 		logger.Warn("oidc token parsing failed", "err", err)
+		return LoginCallbackResult{ErrorMessage: "internal error"}
+	}
+
+	pl, err := h.groupToPL(user.B3Group)
+	if err != nil {
+		logger.Warn("oidc group mapping failed", "err", err)
 		return LoginCallbackResult{ErrorMessage: "internal error"}
 	}
 
@@ -196,10 +201,17 @@ func getOIDCHandler() (AuthHandler, error) {
 			"b3",
 		},
 	}
+	jwtH, err := newJWTHandler([]byte(config.GetConfig().Web.SessionSignKey),
+		[]byte(config.GetConfig().Web.SessionEncryptKey))
+
+	if err != nil {
+		return nil, err
+	}
 
 	return &oidcHandler{
-		oauthCfg: oauthCfg,
-		verifier: verifier,
-		provider: provider,
+		oauthCfg:   oauthCfg,
+		verifier:   verifier,
+		provider:   provider,
+		jwtHandler: jwtH,
 	}, nil
 }

@@ -1,38 +1,72 @@
 package auth
 
 import (
-	"encoding/json"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const jwtClockLeeway = 5 * time.Second
+
 type jwtTokenHandler struct {
-	secretKey []byte
+	signKey []byte
+	aesgcm  cipher.AEAD
 }
 
-func (jwtH *jwtTokenHandler) sign(tokenID, username string, pl int) (string, error) {
-	claims := jwt.MapClaims{
-		"sub":              tokenID,
-		"exp":              time.Now().Add(time.Hour * 24).Unix(),
-		"iat":              time.Now().Unix(),
-		"username":         username,
-		"permission_level": pl,
+func (jwtH *jwtTokenHandler) sign(tokenID string, claims JWTClaims, lifetime time.Duration) (string, error) {
+	now := time.Now()
+	if lifetime < 0 {
+		lifetime = 0
 	}
 
+	claims.Subject = tokenID
+	claims.ExpiresAt = jwt.NewNumericDate(now.Add(lifetime))
+	claims.IssuedAt = jwt.NewNumericDate(now)
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString(jwtH.secretKey)
+	signedToken, err := token.SignedString(jwtH.signKey)
 	if err != nil {
 		return "", err
 	}
 	return signedToken, nil
 }
 
-func (jwtH *jwtTokenHandler) verify(rawToken string) (*UserInfo, error) {
-	token, err := jwt.Parse(rawToken, func(token *jwt.Token) (any, error) {
-		return jwtH.secretKey, nil
-	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithJSONNumber())
+func (jwtH *jwtTokenHandler) encrypt(token string) string {
+	cipherText := jwtH.aesgcm.Seal(nil, nil, []byte(token), nil)
+	return base64.RawURLEncoding.EncodeToString(cipherText)
+}
+
+func (jwtH *jwtTokenHandler) decrypt(cipherText string) (string, error) {
+	raw, err := base64.RawURLEncoding.DecodeString(cipherText)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := jwtH.aesgcm.Open(nil, nil, raw, nil)
+	if err != nil {
+		return "", err
+	}
+	return string(token), nil
+}
+
+func (jwtH *jwtTokenHandler) verify(rawToken string, opts ...jwt.ParserOption) (*JWTClaims, error) {
+	claims := &JWTClaims{}
+	defaultOpts := []jwt.ParserOption{
+		jwt.WithValidMethods([]string{"HS256"}),
+		jwt.WithExpirationRequired(),
+		jwt.WithIssuedAt(),
+		jwt.WithLeeway(jwtClockLeeway),
+	}
+	defaultOpts = append(defaultOpts, opts...)
+
+	token, err := jwt.ParseWithClaims(rawToken, claims, func(token *jwt.Token) (any, error) {
+		return jwtH.signKey, nil
+	}, defaultOpts...)
 
 	if err != nil {
 		return nil, err
@@ -42,39 +76,23 @@ func (jwtH *jwtTokenHandler) verify(rawToken string) (*UserInfo, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, fmt.Errorf("invalid token claims")
+	return claims, nil
+}
+
+func newJWTHandler(signKey, encryptKey []byte) (*jwtTokenHandler, error) {
+	hashedEncKey := sha256.Sum256(encryptKey)
+	block, err := aes.NewCipher(hashedEncKey[:])
+	if err != nil {
+		return nil, err
 	}
 
-	username, ok := claims["username"].(string)
-	if !ok || username == "" {
-		return nil, fmt.Errorf("invalid username claim")
+	aesgcm, err := cipher.NewGCMWithRandomNonce(block)
+	if err != nil {
+		return nil, err
 	}
 
-	sub, ok := claims["sub"].(string)
-	if !ok || sub == "" {
-		return nil, fmt.Errorf("invalid subject claim")
-	}
-
-	plVal, ok := claims["permission_level"]
-	if !ok {
-		return nil, fmt.Errorf("missing permission level claim")
-	}
-
-	plN, ok := plVal.(json.Number)
-	if !ok {
-		return nil, fmt.Errorf("invalid permission level claim: %T", plVal)
-	}
-
-	pl, err := plN.Int64()
-	if err != nil || pl > 255 {
-		return nil, fmt.Errorf("invalid permission level claim: %w", err)
-	}
-
-	return &UserInfo{
-		Username:        username,
-		PermissionLevel: uint8(pl),
-		SessionID:       sub,
+	return &jwtTokenHandler{
+		signKey: signKey,
+		aesgcm:  aesgcm,
 	}, nil
 }

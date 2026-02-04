@@ -6,8 +6,8 @@ import (
 )
 
 // Bytes returns a slice of cryptographically random bytes of the given length.
-func Bytes(len int) ([]byte, error) {
-	buf := make([]byte, len)
+func Bytes(n int) ([]byte, error) {
+	buf := make([]byte, n)
 	if _, err := rand.Read(buf); err != nil {
 		return nil, err
 	}
@@ -15,8 +15,8 @@ func Bytes(len int) ([]byte, error) {
 }
 
 // String returns a raw string made from cryptographically random bytes.
-func String(len int) (string, error) {
-	buf, err := Bytes(len)
+func String(n int) (string, error) {
+	buf, err := Bytes(n)
 	if err != nil {
 		return "", err
 	}
@@ -24,8 +24,8 @@ func String(len int) (string, error) {
 }
 
 // Hex returns a hex-encoded string from cryptographically random bytes.
-func Hex(len int) (string, error) {
-	buf, err := Bytes(len)
+func Hex(n int) (string, error) {
+	buf, err := Bytes(n)
 	if err != nil {
 		return "", err
 	}

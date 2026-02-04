@@ -48,14 +48,6 @@ type basicHandler struct {
 	jwtH  *jwtTokenHandler
 }
 
-type OIDCDiscovery struct {
-	AuthorizationEndpoint string `json:"authorization_endpoint"`
-	TokenEndpoint         string `json:"token_endpoint"`
-	UserinfoEndpoint      string `json:"userinfo_endpoint"`
-	JWKSURI               string `json:"jwks_uri"`
-	Issuer                string `json:"issuer"`
-}
-
 type OIDCUserInfo struct {
 	Subject string `json:"sub"`
 	Name    string `json:"name"`
@@ -63,9 +55,10 @@ type OIDCUserInfo struct {
 }
 
 type oidcHandler struct {
-	oauthCfg *oauth2.Config
-	verifier *oidc.IDTokenVerifier
-	provider *oidc.Provider
+	oauthCfg   *oauth2.Config
+	verifier   *oidc.IDTokenVerifier
+	provider   *oidc.Provider
+	jwtHandler *jwtTokenHandler
 }
 
 type oidcCookies struct {

@@ -43,7 +43,6 @@ func createServer() *web.Server {
 		ListenAddr:  config.GetConfig().Web.ListenAddr,
 		BaseURL:     config.GetConfig().Web.BaseURL,
 		Logger:      logger.WithGroup("http"),
-		SessionKey:  []byte(config.GetConfig().Web.SessionKey),
 		Pages:       renderer,
 		AuthHandler: ah,
 	})

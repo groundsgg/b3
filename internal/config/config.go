@@ -14,9 +14,10 @@ var globalConfig *config
 func loadEnvs() (*config, error) {
 	cfg := &config{
 		Web: Web{
-			ListenAddr: os.Getenv("WEB_LISTEN_ADDR"),
-			BaseURL:    os.Getenv("WEB_BASE_URL"),
-			SessionKey: os.Getenv("WEB_SESSION_KEY"),
+			ListenAddr:        os.Getenv("WEB_LISTEN_ADDR"),
+			BaseURL:           os.Getenv("WEB_BASE_URL"),
+			SessionSignKey:    os.Getenv("WEB_SESSION_SIGN_KEY"),
+			SessionEncryptKey: os.Getenv("WEB_SESSION_ENCRYPT_KEY"),
 		},
 		Auth: Auth{
 			Type: strings.ToLower(os.Getenv("AUTH_TYPE")),

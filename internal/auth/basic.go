@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/groundsgg/b3/internal/config"
@@ -23,7 +24,31 @@ func (h *basicHandler) PreLogin(_ http.ResponseWriter, _ *http.Request) error {
 
 // VerifyToken validates the auth token and returns the associated user info.
 func (h *basicHandler) VerifyToken(token string) (*UserInfo, error) {
-	return h.jwtH.verify(token)
+	claims, err := h.jwtH.verify(token)
+	if err != nil {
+		return nil, err
+	}
+
+	subject, err := claims.GetSubject()
+	if err != nil {
+		return nil, err
+	}
+
+	username, err := claims.GetUsername()
+	if err != nil {
+		return nil, err
+	}
+
+	pl, err := claims.GetPermissionLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	return &UserInfo{
+		SessionID:       subject,
+		Username:        username,
+		PermissionLevel: pl,
+	}, nil
 }
 
 // LoginCallback validates the submitted basic auth credentials.
@@ -42,7 +67,7 @@ func (h *basicHandler) LoginCallback(w http.ResponseWriter, r *http.Request) Log
 		if user := h.users[strings.ToLower(username)]; user != nil {
 			if err := bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(password)); err == nil {
 				tokenID := uuid.NewString()
-				token, err := h.jwtH.sign(tokenID, user.Name, int(user.PermissionLevel))
+				token, err := h.jwtH.sign(tokenID, NewSessionClaims(user.Name, user.PermissionLevel), time.Hour*24)
 				if err != nil {
 					return LoginCallbackResult{
 						ErrorMessage: "failed to create a session",
@@ -90,7 +115,7 @@ func getBasicAuthHandler() (AuthHandler, error) {
 	return &basicHandler{
 		users: users,
 		jwtH: &jwtTokenHandler{
-			secretKey: []byte(config.GetConfig().Web.SessionKey),
+			signKey: []byte(config.GetConfig().Web.SessionSignKey),
 		},
 	}, nil
 }

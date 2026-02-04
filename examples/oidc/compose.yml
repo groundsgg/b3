@@ -8,7 +8,8 @@ services:
 
     environment:
       WEB_BASE_URL: "https://b3.example.com"
-      WEB_SESSION_KEY: aVerySecureKey
+      WEB_SESSION_SIGN_KEY: aVerySecureKeyaVerySecureKey
+      WEB_SESSION_ENCRYPT_KEY: aVerySecureKeyaVerySecureKey
       AUTH_TYPE: oidc
       AUTH_OIDC_CLIENT_ID: id
       AUTH_OIDC_CLIENT_SECRET: secret
